@@ -20,9 +20,9 @@ import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.viewers.ILabelDecorator;
 import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Event;
+import org.eclipse.swt.widgets.Listener;
 import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.menus.IMenuService;
 
 import at.medevit.atc_codes.ATCCodeLanguageConstants;
 import at.medevit.ch.artikelstamm.ArtikelstammConstants;
@@ -32,7 +32,6 @@ import at.medevit.ch.artikelstamm.elexis.common.ui.provider.ATCArtikelstammDecor
 import at.medevit.ch.artikelstamm.elexis.common.ui.provider.LagerhaltungArtikelstammLabelProvider;
 import at.medevit.ch.artikelstamm.ui.IArtikelstammItem;
 import ch.artikelstamm.elexis.common.ArtikelstammItem;
-import ch.artikelstamm.elexis.common.ArtikelstammPOFactory;
 import ch.elexis.core.data.activator.CoreHub;
 import ch.elexis.core.data.events.ElexisEventDispatcher;
 import ch.elexis.core.ui.UiDesk;
@@ -64,6 +63,21 @@ public class ArtikelstammCodeSelectorFactory extends CodeSelectorFactory {
 				new FieldDescriptor<ArtikelstammItem>("Artikel oder Wirkstoff", ArtikelstammItem.FLD_DSCR,
 					Typ.STRING, null),
 			};
+		
+		// add keyListener to search field
+		Listener keyListener = new Listener() {
+			@Override
+			public void handleEvent(Event event){
+				if (event.type == eventType) {
+					if (event.keyCode == SWT.CR || event.keyCode == SWT.KEYPAD_CR) {
+						slp.fireChangedEvent();
+					}
+				}
+			}
+		};
+		for (FieldDescriptor<?> fd : fields) {
+			fd.setAssignedListener(eventType, keyListener);
+		}
 		slp = new SelectorPanelProvider(fields, true);
 
 		Query<ArtikelstammItem> qbe = new Query<ArtikelstammItem>(ArtikelstammItem.class);
