@@ -594,6 +594,10 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 	public TYPE getType(){
 		return ArtikelstammConstants.TYPE.valueOf(get(FLD_ITEM_TYPE));
 	}
+
+	public String getTyp(){
+		return get(FLD_ITEM_TYPE);
+	}
 	
 	@Override
 	public String getManufacturerLabel(){
