@@ -4,7 +4,7 @@
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- * 
+ *
  * Contributors:
  *     MEDEVIT <office@medevit.at> - initial API and implementation
  ******************************************************************************/
@@ -12,6 +12,7 @@ package ch.artikelstamm.elexis.common;
 
 import java.math.BigInteger;
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -43,19 +44,20 @@ import ch.rgw.tools.VersionInfo;
  */
 public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 	private static DateFormat df = new SimpleDateFormat("ddMMyy HH:mm");
-	
+
 	private static IOptifier noObligationOptifier = new NoObligationOptifier();
 	private static IOptifier defaultOptifier = new DefaultOptifier();
 	private final double ZERO = 0.0;
-	
+
 	public static final String TABLENAME = "ARTIKELSTAMM_CH";
+	private static final String VERSION_ENTRY_ID = "VERSION";
 	static final String VERSION = "1.1.0";
-	
+
 	//@formatter:off
 	/** Eintrag zugeh. zu  */ public static final String FLD_CUMMULATED_VERSION = "CUMM_VERSION";
 	/** Blackboxed item */ public static final String FLD_BLACKBOXED = "BB";
 	/** (P)harma / (N)on Pharma */ public static final String FLD_ITEM_TYPE = "TYPE";
-	
+
 	/** Global Trade Index Number **/ public static final String FLD_GTIN = "GTIN";
 	/** Pharmacode, unique record identifier */ public static final String FLD_PHAR = "PHAR";
 	/** Artikelbeschreibung */ 		public static final String FLD_DSCR = "DSCR";
@@ -78,10 +80,10 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 	/** Ist Betäubungsmittel */	public static final String FLD_NARCOTIC = "NARCOTIC";
 	/** CAS Nr wenn Betäub */	public static final String FLD_NARCOTIC_CAS = "NARCOTIC_CAS";
 	/** Ist Impfstoff */		public static final String FLD_VACCINE = "VACCINE";
-	
-	
+
+
 	public static final String EXTINFO_VAL_VAT_OVERRIDEN = "VAT_OVERRIDE";
-	
+
 	/** Definition of the database table */
 	static final String createDB =
 		"CREATE TABLE " + TABLENAME
@@ -94,8 +96,8 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 			+ FLD_CUMMULATED_VERSION + " CHAR(4),"
 			+ FLD_GTIN + " VARCHAR(14)," // id(VERSION) contains table version, has to be varchar else vi.isolder() fails
 			+ FLD_PHAR 	+" CHAR(7),"
-			+ FLD_DSCR	+" VARCHAR(50)," // id(VERSION) filename of last P import
-			+ FLD_ADDDSCR	+" VARCHAR(50)," // id(VERSION) filename of last N import
+			+ FLD_DSCR	+" VARCHAR(50)," // id(VERSION) creation date of current P dataset
+			+ FLD_ADDDSCR	+" VARCHAR(50)," // id(VERSION) creation date of current N dataset
 			+ FLD_ATC +" CHAR(10),"
 			+ FLD_COMP_GLN + " CHAR(13),"
 			+ FLD_COMP_NAME + " VARCHAR(255),"
@@ -130,54 +132,62 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 			+ "INSERT INTO " + TABLENAME + " (ID,"+FLD_GTIN+","+FLD_NARCOTIC_CAS+","+FLD_PEXF+","+FLD_PPUB+") VALUES ('VERSION',"
 			+ JdbcLink.wrap(VERSION) +","+JdbcLink.wrap(df.format(new Date()))+",0,0);";
 
-	
+
 	static final String dbUpdateFrom10to11 =
 		"ALTER TABLE "+TABLENAME+" ADD "+PersistentObject.FLD_EXTINFO+" BLOB;";
 			//@formatter:on
 	static {
-		addMapping(TABLENAME, FLD_ITEM_TYPE, FLD_CUMMULATED_VERSION, FLD_BLACKBOXED, FLD_GTIN,
-			FLD_PHAR, FLD_DSCR, FLD_ADDDSCR, FLD_ATC, FLD_COMP_GLN, FLD_COMP_NAME, FLD_PEXF,
-			FLD_PPUB, FLD_PKG_SIZE, FLD_SL_ENTRY, FLD_IKSCAT, FLD_LIMITATION, FLD_LIMITATION_PTS,
-			FLD_LIMITATION_TEXT, FLD_GENERIC_TYPE, FLD_HAS_GENERIC, FLD_LPPV, FLD_DEDUCTIBLE,
-			FLD_NARCOTIC, FLD_NARCOTIC_CAS, FLD_VACCINE, FLD_LIEFERANT_ID, MAXBESTAND, MINBESTAND,
-			ISTBESTAND, VERKAUFSEINHEIT, ANBRUCH, PersistentObject.FLD_EXTINFO);
-		ArtikelstammItem version = load("VERSION"); //$NON-NLS-1$
+		/**
+		 * FLD_ITEM_TYPE, FLD_PHAR, FLD_PEXF, FLD_PPUB have two mappings on purpose! The mappings
+		 * with the Artikel-Fields are essential in order to make the ArtikelDetailDialog work with
+		 * ArtikelstammItems
+		 */
+		addMapping(TABLENAME, FLD_ITEM_TYPE, Artikel.FLD_TYP + "=" + FLD_ITEM_TYPE,
+			FLD_CUMMULATED_VERSION, FLD_BLACKBOXED, FLD_GTIN, FLD_PHAR, Artikel.FLD_PHARMACODE
+				+ "=" + FLD_PHAR, FLD_DSCR, FLD_ADDDSCR, FLD_ATC, FLD_COMP_GLN, FLD_COMP_NAME,
+			FLD_PEXF, Artikel.FLD_EK_PREIS + "=" + FLD_PEXF, FLD_PPUB, Artikel.FLD_VK_PREIS + "="
+				+ FLD_PPUB, FLD_PKG_SIZE, FLD_SL_ENTRY, FLD_IKSCAT, FLD_LIMITATION,
+			FLD_LIMITATION_PTS, FLD_LIMITATION_TEXT, FLD_GENERIC_TYPE, FLD_HAS_GENERIC, FLD_LPPV,
+			FLD_DEDUCTIBLE, FLD_NARCOTIC, FLD_NARCOTIC_CAS, FLD_VACCINE, FLD_LIEFERANT_ID,
+			MAXBESTAND, MINBESTAND, ISTBESTAND, VERKAUFSEINHEIT, ANBRUCH,
+			PersistentObject.FLD_EXTINFO);
+		ArtikelstammItem version = load(VERSION_ENTRY_ID);
 		if (!version.exists()) {
 			createOrModifyTable(createDB);
 		} else {
 			VersionInfo vi = new VersionInfo(version.get(FLD_GTIN));
-			
+
 			if (vi.isOlder(VERSION)) {
 				createOrModifyTable(dbUpdateFrom10to11);
 				version.set(FLD_GTIN, VERSION);
 			}
 		}
 	}
-	
+
 	@Override
 	public String getLabel(){
 		return get(FLD_DSCR) + " (" + get(FLD_ADDDSCR) + ")";
 	}
-	
+
 	@Override
 	protected String getTableName(){
 		//
 		return TABLENAME;
 	}
-	
+
 	ArtikelstammItem(){}
-	
+
 	public static ArtikelstammItem load(String id){
 		return new ArtikelstammItem(id);
 	}
-	
+
 	protected ArtikelstammItem(String id){
 		super(id);
 	}
-	
+
 	/**
 	 * Main import constructor containing the required properties to create the deterministic id
-	 * 
+	 *
 	 * @param cummulatedVersion
 	 *            dataset version for type
 	 * @param type
@@ -194,21 +204,21 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 	public ArtikelstammItem(int cummulatedVersion, TYPE type, String gtin, BigInteger phar,
 		String dscr, String addscr){
 		create(ArtikelstammHelper.createUUID(cummulatedVersion, type, gtin, phar));
-		
+
 		// fix pharmacode length < 7 chars
 		String pharmacode = (phar != null) ? String.format("%07d", phar) : "0000000";
-		
+
 		set(new String[] {
 			FLD_ITEM_TYPE, FLD_GTIN, FLD_PHAR, FLD_DSCR, FLD_ADDDSCR, FLD_CUMMULATED_VERSION,
 			FLD_BLACKBOXED
 		}, type.name(), gtin, pharmacode, dscr, addscr, cummulatedVersion + "",
 			StringConstants.ZERO);
 	}
-	
+
 	// -------------------------------------------------
 	/**
 	 * Load an article according to its Pharmacode (unique identifier)
-	 * 
+	 *
 	 * @param pharNo
 	 *            Pharmacode, unique record identifier
 	 * @return element if exists, else null
@@ -220,14 +230,14 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 			return null;
 		return ArtikelstammItem.load(res);
 	}
-	
+
 	@Override
 	public String getName(){
 		return checkNull(get(FLD_DSCR));
 	}
-	
+
 	// --- ARTIKEL OVERRIDE
-	
+
 	@Override
 	public int getTotalCount(){
 		int pkgUnits = getIstbestand();
@@ -241,18 +251,18 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 		}
 		return pkgUnits;
 	}
-	
+
 	@Override
 	public int getPackungsGroesse(){
 		int val = 0;
 		try {
 			val = Integer.parseInt(get(FLD_PKG_SIZE));
 		} catch (NumberFormatException nfe) {
-			
+
 		}
 		return val;
 	}
-	
+
 	@Override
 	public int getAbgabeEinheit(){
 		int val = 0;
@@ -261,12 +271,12 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 		} catch (NumberFormatException nfe) {}
 		return val;
 	}
-	
+
 	@Override
 	public String getPackungsGroesseDesc(){
 		return checkNull(get(FLD_ADDDSCR));
 	}
-	
+
 	@Override
 	public Money getKosten(final TimeTool dat){
 		double vkt = checkZeroDouble(getTP(dat, null) + "");
@@ -278,17 +288,17 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 			return new Money((int) Math.round(vkt));
 		}
 	}
-	
+
 	@Override
 	public int getBruchteile(){
 		return checkZero(get(ANBRUCH));
 	}
-	
+
 	@Override
 	public void setBruchteile(int number){
 		set(ANBRUCH, Integer.toString(number));
 	}
-	
+
 	@Override
 	public void einzelAbgabe(final int n){
 		int anbruch = getBruchteile();
@@ -317,7 +327,7 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 			setBruchteile(rest);
 		}
 	}
-	
+
 	@Override
 	public void einzelRuecknahme(int n){
 		int anbruch = getBruchteile();
@@ -335,12 +345,12 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 			setBruchteile(rest);
 		}
 	}
-	
+
 	@Override
 	public int getVerpackungsEinheit(){
 		return checkZero(get(FLD_PKG_SIZE));
 	}
-	
+
 	@Override
 	public Money getEKPreis(){
 		String value = get(FLD_PEXF);
@@ -348,7 +358,7 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 			return new Money(Double.parseDouble(value));
 		return new Money();
 	}
-	
+
 	@Override
 	public Money getVKPreis(){
 		String value = get(FLD_PPUB);
@@ -358,10 +368,10 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 			// values, we always need positive values however
 			return new Money(Math.abs(dValue));
 		}
-		
+
 		return MargePreference.calculateVKP(getEKPreis());
 	}
-	
+
 	public boolean isCalculatedPrice(){
 		String value = get(FLD_PPUB);
 		if (value != null && !value.isEmpty()) {
@@ -373,7 +383,7 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 		}
 		return false;
 	}
-	
+
 	public boolean isUserDefinedPrice(){
 		String value = get(FLD_PPUB);
 		if (value != null && !value.isEmpty()) {
@@ -383,11 +393,11 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 		}
 		return false;
 	}
-	
+
 	public void overrideVatInfo(VatInfo overridenVat) {
 		setExtInfoStoredObjectByKey(EXTINFO_VAL_VAT_OVERRIDEN, overridenVat.toString());
 	}
-	
+
 	// -- VERRECHENBAR ADAPTER and ARTIKEL ---
 	@Override
 	public VatInfo getVatInfo(){
@@ -395,7 +405,7 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 		if(overridenVat !=null) {
 			return VatInfo.valueOf(overridenVat);
 		}
-		
+
 		switch (getType()) {
 		case P:
 			return VatInfo.VAT_CH_ISMEDICAMENT;
@@ -404,7 +414,7 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 		}
 		return VatInfo.VAT_NONE;
 	}
-	
+
 	@Override
 	public IOptifier getOptifier(){
 		VatInfo vatInfo = getVatInfo();
@@ -412,7 +422,7 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 			return noObligationOptifier;
 		return defaultOptifier;
 	}
-	
+
 	@Override
 	public int getPreis(TimeTool dat, Fall fall){
 		double vkPreis = checkZeroDouble(getVKPreis().getCentsAsString());
@@ -424,33 +434,33 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 			return (int) Math.round(vkPreis);
 		}
 	}
-	
+
 	@Override
 	public int getTP(TimeTool date, Fall fall){
 		return getPreis(date, fall);
 	}
-	
+
 	@Override
 	public double getFactor(TimeTool date, Fall fall){
 		// TODO
 		return 1;
 	}
-	
+
 	@Override
 	public boolean isDragOK(){
 		return true;
 	}
-	
+
 	@Override
 	public String getXidDomain(){
 		return ArtikelstammConstants.CODESYSTEM_NAME;
 	}
-	
+
 	@Override
 	public String getCodeSystemName(){
 		return ArtikelstammConstants.CODESYSTEM_NAME;
 	}
-	
+
 	@Override
 	public String getCodeSystemCode(){
 		String pharmaCode = getPharmaCode();
@@ -459,44 +469,44 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 		}
 		return super.getCodeSystemCode();
 	}
-	
+
 	@Override
 	public String getCode(){
 		return get(FLD_PHAR);
 	}
-	
+
 	@Override
 	public String getPharmaCode(){
 		return get(FLD_PHAR);
 	};
-	
+
 	@Override
 	public String getText(){
 		return getLabel();
 	}
-	
+
 	@Override
 	public String getEAN(){
 		return get(FLD_GTIN);
 	}
-	
+
 	@Override
 	public String getATC_code(){
 		return getATCCode();
 	}
-	
+
 	public int getVerkaufseinheit(){
 		return checkZero(get(VERKAUFSEINHEIT));
 	}
-	
+
 	// --------------------
-	
+
 	/**
 	 * @param stammType
 	 * @return The version of the resp {@link TYPE}, or 99999 if not found
 	 */
 	public static int getImportSetCumulatedVersion(TYPE stammType){
-		ArtikelstammItem version = load("VERSION");
+		ArtikelstammItem version = load(VERSION_ENTRY_ID);
 		switch (stammType) {
 		case N:
 			return version.getInt(FLD_PEXF);
@@ -505,9 +515,9 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 		}
 		return 99999;
 	}
-	
+
 	public static void setImportSetCumulatedVersion(TYPE stammType, int importStammVersion){
-		ArtikelstammItem version = load("VERSION");
+		ArtikelstammItem version = load(VERSION_ENTRY_ID);
 		switch (stammType) {
 		case N:
 			version.setInt(FLD_PEXF, importStammVersion);
@@ -517,9 +527,9 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 			return;
 		}
 	}
-	
+
 	public static void setImportSetDataQuality(TYPE p, int dq){
-		ArtikelstammItem version = load("VERSION");
+		ArtikelstammItem version = load(VERSION_ENTRY_ID);
 		switch (p) {
 		case N:
 			version.setInt(FLD_BLACKBOXED, dq);
@@ -529,9 +539,9 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 			return;
 		}
 	}
-	
+
 	public static int getImportSetDataQuality(TYPE p){
-		ArtikelstammItem version = load("VERSION");
+		ArtikelstammItem version = load(VERSION_ENTRY_ID);
 		switch (p) {
 		case N:
 			return version.getInt(FLD_BLACKBOXED);
@@ -541,56 +551,53 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 			return 0;
 		}
 	}
-	
-	/**
-	 * Stores the filename of the last import source file
-	 * 
-	 * @param stammType
-	 * @param importFilename
-	 */
-	public static void setImportSetLastImportFileName(TYPE stammType, String importFilename){
-		ArtikelstammItem version = load("VERSION");
+
+	public static void setImportSetCreationDate(TYPE stammType, Date creationDate){
+		ArtikelstammItem version = load(VERSION_ENTRY_ID);
 		switch (stammType) {
 		case N:
-			version.set(FLD_ADDDSCR, importFilename);
+			version.set(FLD_ADDDSCR, df.format(creationDate.getTime()));
 			return;
 		case P:
-			version.set(FLD_DSCR, importFilename);
+			version.set(FLD_DSCR, df.format(creationDate.getTime()));
 			return;
 		}
 	}
-	
-	/**
-	 * Retrieves the filename of the last import source file
-	 * 
-	 * @param stammType
-	 */
-	public static String getImportSetLastImportFileName(TYPE stammType){
-		ArtikelstammItem version = load("VERSION");
+
+	public static Date getImportSetCreationDate(TYPE stammType){
+		ArtikelstammItem version = load(VERSION_ENTRY_ID);
 		switch (stammType) {
 		case N:
-			return version.get(FLD_ADDDSCR);
+			try {
+				return df.parse(version.get(FLD_ADDDSCR));
+			} catch (ParseException e) {
+				return null;
+			}
 		case P:
-			return version.get(FLD_DSCR);
+			try {
+				return df.parse(version.get(FLD_DSCR));
+			} catch (ParseException e) {
+				return null;
+			}
 		default:
-			return "";
+			return null;
 		}
 	}
-	
+
 	public static boolean purgeEntries(List<ArtikelstammItem> qre){
 		JdbcLink link = getConnection();
-		
+
 		for (ArtikelstammItem artikelstammItem : qre) {
 			link.exec("DELETE FROM " + TABLENAME + " WHERE ID=" + artikelstammItem.getWrappedId());
 		}
-		
+
 		return true;
 	}
-	
+
 	/**
 	 * The article is marked as black-boxed if the value within {@link #FLD_BLACKBOXED} does not
 	 * equal 0
-	 * 
+	 *
 	 * @return
 	 */
 	public boolean isBlackBoxed(){
@@ -599,37 +606,37 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 			return true;
 		return false;
 	}
-	
+
 	/**
-	 * 
+	 *
 	 * @return {@link BlackBoxReason} or <code>null</code> if invalid value
 	 */
 	public BlackBoxReason getBlackBoxReason(){
 		int value = Integer.parseInt(get(FLD_BLACKBOXED));
 		return BlackBoxReason.getByInteger(value);
 	}
-	
+
 	// requirements for IArtikelstammItem
 	@Override
 	public String getDSCR(){
 		return get(FLD_DSCR);
 	}
-	
+
 	@Override
 	public String getGTIN(){
 		return get(FLD_GTIN);
 	}
-	
+
 	@Override
 	public String getPHAR(){
 		return get(FLD_PHAR);
 	}
-	
+
 	@Override
 	public String getATCCode(){
 		return get(FLD_ATC);
 	}
-	
+
 	@Override
 	public TYPE getType(){
 		return ArtikelstammConstants.TYPE.valueOf(get(FLD_ITEM_TYPE));
@@ -638,7 +645,7 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 	public String getTyp(){
 		return get(FLD_ITEM_TYPE);
 	}
-	
+
 	@Override
 	public String getManufacturerLabel(){
 		StringBuilder sb = new StringBuilder();
@@ -648,41 +655,41 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 			sb.append(" (GLN " + get(FLD_COMP_GLN) + ")");
 		return sb.toString();
 	}
-	
+
 	@Override
 	public Double getExFactoryPrice(){
 		return getEKPreis().doubleValue();
-		
+
 	}
-	
+
 	@Override
 	public Double getPublicPrice(){
 		return getVKPreis().doubleValue();
 	}
-	
+
 	@Override
 	public void setPublicPrice(Double amount){
 		if (amount < 0)
 			throw new IllegalArgumentException("No negative values allowed");
 		set(FLD_PPUB, "-" + amount);
 	}
-	
+
 	@Override
 	public boolean isInSLList(){
 		return (get(FLD_SL_ENTRY) != null && get(FLD_SL_ENTRY).equals(StringConstants.ONE)) ? true
 				: false;
 	}
-	
+
 	@Override
 	public String getSwissmedicCategory(){
 		return get(FLD_IKSCAT);
 	}
-	
+
 	@Override
 	public String getGenericType(){
 		return get(FLD_GENERIC_TYPE);
 	}
-	
+
 	@Override
 	public Integer getDeductible(){
 		// Medikament wenn SL nicht 20 % dann 10 %
@@ -699,50 +706,50 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 			return 0;
 		}
 	}
-	
+
 	@Override
 	public boolean isNarcotic(){
 		return (get(FLD_NARCOTIC).equals(StringConstants.ONE)) ? true : false;
 	}
-	
+
 	@Override
 	public boolean isLimited(){
 		return (get(FLD_LIMITATION).equals(StringConstants.ONE)) ? true : false;
 	}
-	
+
 	@Override
 	public String getLimitationPoints(){
 		return get(FLD_LIMITATION_PTS);
 	}
-	
+
 	@Override
 	public String getLimitationText(){
 		return get(FLD_LIMITATION_TEXT);
 	}
-	
+
 	@Override
 	public boolean isInLPPV(){
 		return (get(FLD_LPPV).equals(StringConstants.ONE)) ? true : false;
 	}
-	
+
 	public int getVerpackungseinheit(){
 		return getVerpackungsEinheit();
 	}
-	
+
 	public void setVerpackungseinheit(int vpe){
 		set(FLD_PKG_SIZE, vpe + "");
 	}
-	
+
 	public void setVerkaufseinheit(int vse){
 		set(VERKAUFSEINHEIT, vse + "");
 	}
-	
+
 	public static int findNumberOfArtikelstammItemsForATCWildcard(String atcCode){
 		return PersistentObject.getConnection().queryInt(
 			"SELECT COUNT(*) FROM " + ArtikelstammItem.TABLENAME + " WHERE "
 				+ ArtikelstammItem.FLD_ATC + " " + Query.LIKE + " " + JdbcLink.wrap(atcCode + "%"));
 	}
-	
+
 	/**
 	 * @param ean
 	 *            the European Article Number or GTIN
@@ -757,9 +764,9 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 			return result.get(0);
 		return null;
 	}
-	
+
 	/**
-	 * 
+	 *
 	 * @param pharmaCode
 	 * @return the ArtikelstammItem for the given pharma code or <code>null</code> if not found
 	 */
@@ -769,16 +776,16 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 		List<ArtikelstammItem> result = qre.execute();
 		if (result.size() == 1)
 			return result.get(0);
-		
+
 		if (!pharmaCode.startsWith(String.valueOf(0))) {
 			return ArtikelstammItem.findByPharmaCode(String.valueOf(0) + pharmaCode);
 		}
-		
+
 		return null;
 	}
-	
+
 	/**
-	 * 
+	 *
 	 * @return all {@link ArtikelstammItem} currently on stock
 	 */
 	public static List<ArtikelstammItem> getAllArticlesOnStock(){
