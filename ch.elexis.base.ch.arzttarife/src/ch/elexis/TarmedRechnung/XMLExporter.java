@@ -225,6 +225,7 @@ public class XMLExporter implements IRnOutputter {
 	Mandant actMandant;
 	double tpTarmedTL = 0;
 	double tpTarmedAL = 0;
+	String tiers;
 	
 	List<IDiagnose> diagnosen = new ArrayList<IDiagnose>();
 	
@@ -288,16 +289,19 @@ public class XMLExporter implements IRnOutputter {
 	 * @param rnn
 	 *            a Collection of Rechnung - Objects to output
 	 */
+	@Override
 	public Result<Rechnung> doOutput(final IRnOutputter.TYPE type, final Collection<Rechnung> rnn,
 		Properties props){
 		Result<Rechnung> ret = new Result<Rechnung>();
 		if (outputDir == null) {
 			SWTHelper.SimpleDialog dlg =
 				new SWTHelper.SimpleDialog(new SWTHelper.IControlProvider() {
+					@Override
 					public Control getControl(Composite parent){
 						return createSettingsControl(parent);
 					}
 					
+					@Override
 					public void beforeClosing(){
 						// Nothing
 					}
@@ -321,6 +325,7 @@ public class XMLExporter implements IRnOutputter {
 	 * @param rn
 	 *            we don't mind, we always return true
 	 */
+	@Override
 	public boolean canStorno(final Rechnung rn){
 		return true;
 	}
@@ -479,7 +484,7 @@ public class XMLExporter implements IRnOutputter {
 		// We try to figure out whether we should use Tiers Payant or Tiers
 		// Garant.
 		// if unsure, we make it TG
-		String tiers = TIERS_GARANT;
+		tiers = TIERS_GARANT;
 		Patient pat = actFall.getPatient();
 		Kontakt rnAdressat = actFall.getGarant();
 		
@@ -1309,6 +1314,7 @@ public class XMLExporter implements IRnOutputter {
 		return xmlRn;
 	}
 	
+	@Override
 	public String getDescription(){
 		return Messages.XMLExporter_TarmedForTrustCenter;
 	}
@@ -1597,6 +1603,7 @@ public class XMLExporter implements IRnOutputter {
 		return BY_CONTRACT;
 	}
 	
+	@Override
 	public Control createSettingsControl(final Object parent){
 		final Composite parentInc = (Composite) parent;
 		Composite ret = new Composite(parentInc, SWT.NONE);
@@ -1639,6 +1646,7 @@ public class XMLExporter implements IRnOutputter {
 			+ RnStatus.getStatusText(rn.getStatus()));
 	}
 	
+	@Override
 	public boolean canBill(final Fall fall){
 		Kontakt garant = fall.getGarant();
 		Kontakt kostentraeger = fall.getRequiredContact(TarmedRequirements.INSURANCE);
@@ -1654,6 +1662,7 @@ public class XMLExporter implements IRnOutputter {
 		return false;
 	}
 	
+	@Override
 	public void saveComposite(){
 		// Nothing
 	}
@@ -1831,6 +1840,7 @@ public class XMLExporter implements IRnOutputter {
 				sumvat += (amount / (100.0)) * scale;
 			}
 			
+			@Override
 			public int compareTo(VatRateElement other){
 				if (scale < other.scale)
 					return -1;
