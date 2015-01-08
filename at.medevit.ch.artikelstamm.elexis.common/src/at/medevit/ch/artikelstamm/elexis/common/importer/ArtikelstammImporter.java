@@ -62,7 +62,7 @@ public class ArtikelstammImporter {
 		
 		String msg = "Aktualisierung des Artikelstamms";
 		log.info(msg + " ");
-		monitor.beginTask(msg, 7);
+		monitor.beginTask(msg, 6);
 		monitor.subTask("Einlesen der Aktualisierungsdaten");
 		ARTIKELSTAMM importStamm = null;
 		try {
@@ -114,7 +114,6 @@ public class ArtikelstammImporter {
 		ArtikelstammItem.setImportSetCreationDate(importStammType, importStamm.getCREATIONDATETIME().toGregorianCalendar().getTime());
 		
 		monitor.worked(1);
-		monitor.done();
 		long endTime = System.currentTimeMillis();
 		ElexisEventDispatcher.reload(ArtikelstammItem.class);
 		
