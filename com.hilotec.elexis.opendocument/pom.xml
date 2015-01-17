@@ -6,6 +6,6 @@
     <version>3.0.0-SNAPSHOT</version>
   </parent>
   <artifactId>com.hilotec.elexis.opendocument</artifactId>
-  <version>3.1.0-SNAPSHOT</version>
+  <version>3.1.1-SNAPSHOT</version>
   <packaging>eclipse-plugin</packaging>
 </project>

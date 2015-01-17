@@ -16,7 +16,8 @@ mkdir -p `dirname $logFile`
 
 # log message our log file
 function log2file {
-  msg="`date +"%Y:%m:%d %H:%M:%S"` $1"
+	# we use the same data format as elexis.log prepended with the day
+  msg="`date +"%H:%M:%S.%3N"` open_odf.sh.log $1"
   echo $msg 
   echo $msg >> $logFile
 }
@@ -30,7 +31,6 @@ do
     break
   fi
 done
-
 
 # wait max 30 seconds for the watchFile to be opened
 maxWait=100
@@ -48,25 +48,14 @@ done
 log2file "After $nrWaits sleeps $watchFile is open"
 
 # wait for the lockfile to disappear
-function waitForFile2vanish() {
-	while true
-	do
-	  # don't use --silent. Not supported on MacOSX
-	  timeout 1 fuser $watchFile
-	  if [ $? -gt 0 ] ; then break ; fi
-	  sleep 1
-	done
-	log2file "$watchFile went away"
-}
-
 while true
 do
-	waitForFile2vanish
-	sleep 1 # and a second time to be sure
-	waitForFile2vanish
-	timeout 1 fuser --silent $watchFile
-	if [ $? -gt 0 ] ; then break ; fi
+  # don't use --silent. Not supported on MacOSX
+  timeout 1 fuser $watchFile
+  if [ $? -gt 0 ] ; then break ; fi
+  sleep 1
 done
+log2file "$watchFile went away"
 
 exit 0
 # should we use --norestore and/or -o
