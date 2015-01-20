@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="at.medevit.elexis.impfplan.feature"
+      label="Impfplan (F. Marty) [BETA]"
+      version="3.0.1.qualifier"
+      provider-name="at.medevit">
+
+   <description url="http://www.example.com/description">
+      Für Elexis 3.0 neu entwickelter Impfplan
+   </description>
+
+   <copyright url="http://elexis.info/de_contributers.html">
+      2014 Marco Descher
+   </copyright>
+
+   <license url="http://www.eclipse.org/legal/epl-v10.html">
+      Eclipse Public License v1.0
+   </license>
+
+   <plugin
+         id="at.medevit.elexis.impfplan"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+   <plugin
+         id="at.medevit.elexis.impfplan.ui"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+</feature>

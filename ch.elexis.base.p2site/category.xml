@@ -33,11 +33,11 @@
    <feature url="features/ch.elexis.icpc.feature_3.0.0.qualifier.jar" id="ch.elexis.icpc.feature" version="3.0.0.qualifier">
       <category name="clinicrecordkeeping"/>
    </feature>
-   <feature url="features/ch.elexis.impfplan.feature.source_3.0.0.qualifier.jar" id="ch.elexis.impfplan.feature.source" version="3.0.0.qualifier">
-      <category name="sources"/>
-   </feature>
-   <feature url="features/ch.elexis.impfplan.feature_3.0.0.qualifier.jar" id="ch.elexis.impfplan.feature" version="3.0.0.qualifier">
+   <feature url="features/ch.elexis.impfplan.feature_3.0.1.qualifier.jar" id="ch.elexis.impfplan.feature" version="3.0.1.qualifier">
       <category name="clinicrecordkeeping"/>
+   </feature>
+   <feature url="features/at.medevit.elexis.impfplan.feature_3.0.1.qualifier.jar" id="at.medevit.elexis.impfplan.feature" version="3.0.1.qualifier">
+      <category name="clinical_helpers"/>
    </feature>
    <feature url="features/ch.elexis.omnivore.feature.source_3.0.0.qualifier.jar" id="ch.elexis.omnivore.feature.source" version="3.0.0.qualifier">
       <category name="sources"/>
@@ -230,6 +230,9 @@
    </feature>
    <feature url="features/ch.elexis.laborimport_viollier.feature_3.0.0.qualifier.jar" id="ch.elexis.laborimport_viollier.feature" version="3.0.0.qualifier">
       <category name="laborexchanges"/>
+   </feature>
+   <feature url="features/ch.elexis.impfplan.feature_3.0.1.qualifier.jar" id="ch.elexis.impfplan.feature" version="3.0.1.qualifier">
+      <category name="clinical_helpers"/>
    </feature>
    <feature url="features/ch.docbox.elexis.feature.source_3.0.0.qualifier.jar" id="ch.docbox.elexis.feature.source" version="3.0.0.qualifier">
       <category name="sources"/>
