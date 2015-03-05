@@ -1159,12 +1159,13 @@ public class XMLExporter implements IRnOutputter {
 		Element referrer = new Element("referrer", ns); // 11120 //$NON-NLS-1$
 		Kontakt auftraggeber = actFall.getRequiredContact("Zuweiser");
 		if (auftraggeber != null) {
-			referrer.setAttribute(ATTR_EAN_PARTY, TarmedRequirements.getEAN(auftraggeber)); // auftraggeber.
-			
-			referrer.setAttribute("zsr", TarmedRequirements.getKSK(auftraggeber)); // auftraggeber. //$NON-NLS-1$
-			
-			referrer.addContent(buildAdressElement(auftraggeber));
-			eTiers.addContent(referrer);
+			String zsr = TarmedRequirements.getKSK(auftraggeber);
+			if (zsr != null && !zsr.isEmpty()) {
+				referrer.setAttribute(ATTR_EAN_PARTY, TarmedRequirements.getEAN(auftraggeber)); // auftraggeber.
+				referrer.setAttribute("zsr", zsr); // auftraggeber. //$NON-NLS-1$
+				referrer.addContent(buildAdressElement(auftraggeber));
+				eTiers.addContent(referrer);
+			}
 		}
 		
 		if (tiers.equals(TIERS_GARANT) && (TarmedRequirements.hasTCContract(actMandant))) {
