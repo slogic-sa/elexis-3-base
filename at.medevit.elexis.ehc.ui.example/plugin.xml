@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         point="at.medevit.elexis.ehc.ui.ehcexport">
+      <category
+            id="at.medevit.elexis.ehc.ui.example.category"
+            name="Beispiele">
+      </category>
+      <wizard
+            category="at.medevit.elexis.ehc.ui.example.category"
+            class="at.medevit.elexis.ehc.ui.example.wizard.ExportPatientWizard"
+            id="at.medevit.elexis.ehc.ui.example.patient"
+            name="Stammdaten Patient">
+      </wizard>
+      <wizard
+            category="at.medevit.elexis.ehc.ui.example.category"
+            class="at.medevit.elexis.ehc.ui.example.wizard.ExportPrescriptionWizard"
+            id="at.medevit.elexis.ehc.ui.example.prescription"
+            name="Rezept">
+      </wizard>
+   </extension>
+   <extension
+         point="at.medevit.elexis.ehc.ui.ehcimport">
+      <category
+            id="at.medevit.elexis.ehc.ui.example.category"
+            name="Beispiele">
+      </category>
+      <wizard
+            category="at.medevit.elexis.ehc.ui.example.category"
+            class="at.medevit.elexis.ehc.ui.example.wizard.ImportPatientWizard"
+            id="at.medevit.elexis.ehc.ui.example.patient"
+            name="Stammdaten Patient">
+      </wizard>
+   </extension>
+
+</plugin>
