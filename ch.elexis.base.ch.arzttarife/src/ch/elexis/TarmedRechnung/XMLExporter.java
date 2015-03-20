@@ -1215,6 +1215,7 @@ public class XMLExporter implements IRnOutputter {
 		versicherung.setAttribute("reason", match_type(actFall.getGrund())); //$NON-NLS-1$
 		if (gesetz.equalsIgnoreCase("ivg")) { //$NON-NLS-1$
 			String caseNumber = actFall.getRequiredString(TarmedRequirements.CASE_NUMBER);
+			caseNumber = caseNumber.replaceAll("[^0-9]", StringConstants.EMPTY);
 			if ((!caseNumber.matches("[0-9]{14}")) && // seit 1.1.2000 gültige Nummer //$NON-NLS-1$
 				(!caseNumber.matches("[0-9]{10}")) && // bis 31.12.1999 gültige Nummer //$NON-NLS-1$
 				(!caseNumber.matches("[0-9]{9}")) && // auch bis 31.12.1999 gültige Nummer //$NON-NLS-1$
