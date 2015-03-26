@@ -70,6 +70,9 @@ import ch.rgw.tools.XMLTool;
  */
 public class RnPrintView2 extends ViewPart {
 	public static final String ID = "ch.elexis.arzttarife_ch.printview2";
+	public static final String BY_CONTRACT = "by_contract";
+	public static final String FREETEXT = "freetext";
+	public static final String CODE = "code";
 	
 	private double cmAvail = 21.4; // Verfügbare Druckhöhe in cm
 	private static double cmPerLine = 0.67; // Höhe pro Zeile (0.65 plus
@@ -338,21 +341,8 @@ public class RnPrintView2 extends ViewPart {
 		}
 		
 		Element detail = invoice.getChild("detail", ns); //$NON-NLS-1$
-		Element diagnosis = detail.getChild("diagnosis", ns); //$NON-NLS-1$
-		String type = diagnosis.getAttributeValue(Messages.RnPrintView_62);
 		
-		// TODO Cheap workaround, fix
-		if (type.equals("by_contract")) { //$NON-NLS-1$
-			type = "TI-Code"; //$NON-NLS-1$
-		}
-		text.replace("\\[F51\\]", type); //$NON-NLS-1$
-		if (type.equals("freetext")) { //$NON-NLS-1$
-			text.replace("\\[F52\\]", ""); //$NON-NLS-1$ //$NON-NLS-2$
-			text.replace("\\[F53\\]", diagnosis.getText()); //$NON-NLS-1$
-		} else {
-			text.replace("\\[F52\\]", diagnosis.getAttributeValue("code")); //$NON-NLS-1$ //$NON-NLS-2$
-			text.replace("\\[F53\\]", ""); //$NON-NLS-1$ //$NON-NLS-2$
-		}
+		setDiagnoses(detail.getChildren("diagnosis", ns));
 		
 		// lookup EAN numbers in services and set field 98
 		HashSet<String> eanUniqueSet = new HashSet<String>();
@@ -660,6 +650,43 @@ public class RnPrintView2 extends ViewPart {
 			// never mind
 		}
 		return true;
+	}
+	
+	private void setDiagnoses(List<Element> diagnosisList){
+		if (diagnosisList != null && !diagnosisList.isEmpty()) {
+			String type = "";
+			String freetext = "";
+			StringBuilder sb = new StringBuilder();
+			
+			// only freetext and diagnoses off one type will be added so either ICD10 or TI but not both
+			for (Element diagnose : diagnosisList) {
+				String dType = diagnose.getAttributeValue(Messages.RnPrintView_62); //$NON-NLS-1
+				if (dType.equals(FREETEXT)) { //$NON-NLS-1
+					freetext = diagnose.getText();
+					continue;
+				}
+				
+				// init type first time we get here
+				if (type.isEmpty()) {
+					type = dType;
+					sb.append(diagnose.getAttributeValue(CODE)); //$NON-NLS-1
+				}
+				// add diagnose code if diagnose is from same type
+				else if (type.equals(dType)) {
+					sb.append("; ");
+					sb.append(diagnose.getAttributeValue(CODE)); //$NON-NLS-1
+				}
+			}
+			
+			// replace place holders in document
+			if (type.equals(BY_CONTRACT)) {
+				type = "TI-Code";
+			}
+			
+			text.replace("\\[F51\\]", type); //$NON-NLS-1$
+			text.replace("\\[F52\\]", sb.toString());//$NON-NLS-1$
+			text.replace("\\[F53\\]", freetext); //$NON-NLS-1$
+		}
 	}
 	
 	private String getEANList(String[] eans){
