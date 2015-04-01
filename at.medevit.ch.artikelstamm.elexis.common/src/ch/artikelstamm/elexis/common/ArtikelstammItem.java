@@ -166,12 +166,12 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 
 	@Override
 	public String getLabel(){
-		return get(FLD_DSCR) + " (" + get(FLD_ADDDSCR) + ")";
+		String[] vals = get(true, FLD_DSCR, FLD_ADDDSCR);
+		return vals[0] + " (" + vals[1] + ")";
 	}
 
 	@Override
 	protected String getTableName(){
-		//
 		return TABLENAME;
 	}
 
@@ -813,5 +813,10 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 		qbe.add(MAXBESTAND, Query.GREATER, StringConstants.ZERO);
 		List<ArtikelstammItem> l = qbe.execute();
 		return l == null ? new ArrayList<ArtikelstammItem>(0) : l;
+	}
+	
+	@Override
+	public int getCacheTime(){
+		return 30;
 	}
 }

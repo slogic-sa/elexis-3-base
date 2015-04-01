@@ -218,14 +218,10 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 			FLD_CODE, "Parent", FLD_DIGNI_QUALI, FLD_DIGNI_QUANTI, FLD_SPARTE}, code, parent, DigniQuali, DigniQuanti, sparte); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
 	}
 	
-	/*
-	 * public String[] getDisplayedFields(){ return new String[] { "ID", "Text"}; //$NON-NLS-1$
-	 * //$NON-NLS-2$ }
-	 */
-	
 	@Override
 	public String getLabel(){
-		return getCode() + " " + getText();
+		String[] vals = get(true, FLD_CODE, FLD_TEXT);
+		return vals[0] + " " + vals[1];
 	}
 	
 	@Override
@@ -624,5 +620,10 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 			version.set(FLD_NICK, VERSION_120);
 		}
 		version.set(FLD_CODE, versionVal);
+	}
+	
+	@Override
+	public int getCacheTime(){
+		return 30;
 	}
 }
