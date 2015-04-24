@@ -65,7 +65,7 @@ public class VaccinationPrescriptionEventListener implements ElexisEventListener
 				String side = aid.getSide();
 				
 				Vaccination vacc =
-					new Vaccination(p.get(Prescription.FLD_PATIENT_ID), p.getArtikel(), d, lotNo, m
+					new Vaccination(p.get(Prescription.PATIENT_ID), p.getArtikel(), d, lotNo, m
 						.storeToString());
 				
 				if (side != null && !side.isEmpty()) {
