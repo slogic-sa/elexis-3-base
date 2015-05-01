@@ -1463,6 +1463,13 @@ public class JournalView extends ViewPart implements IActivationListener, ISavea
 			String provider = x.connect(text);
 			hXrefs.put(provider, x);
 		}
+		@SuppressWarnings("unchecked")
+		List<IKonsMakro> makros =
+			Extensions.getClasses(
+				Extensions.getExtensions(ExtensionPointConstantsUi.KONSEXTENSION),
+				"KonsMakro", false); //$NON-NLS-1$
+		text.setExternalMakros(makros);
+		
 		text.setLayoutData(SWTHelper.getFillGridData(1, true, 1, true));
 
 		text.getControl().addFocusListener(new FocusAdapter() {
