@@ -149,6 +149,7 @@ import ch.elexis.core.model.ISticker;
 import ch.elexis.core.text.model.Samdas;
 import ch.elexis.core.data.util.Extensions;
 import ch.elexis.core.ui.util.IKonsExtension;
+import ch.elexis.core.ui.util.IKonsMakro;
 import ch.elexis.core.ui.util.Log;
 import ch.elexis.core.ui.util.SWTHelper;
 import ch.elexis.core.ui.util.ViewMenus;
