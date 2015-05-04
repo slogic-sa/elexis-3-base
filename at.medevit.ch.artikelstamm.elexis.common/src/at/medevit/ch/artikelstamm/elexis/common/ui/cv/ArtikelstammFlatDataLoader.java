@@ -1,3 +1,13 @@
+/*******************************************************************************
+ * Copyright (c) 2015 MEDEVIT.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * Contributors:
+ *     MEDEVIT <office@medevit.at> - initial API and implementation
+ ******************************************************************************/
 package at.medevit.ch.artikelstamm.elexis.common.ui.cv;
 
 import java.util.HashMap;
@@ -29,6 +39,7 @@ public class ArtikelstammFlatDataLoader extends FlatDataLoader implements IDoubl
 	
 	private ATCQueryFilter atcQueryFilter = new ATCQueryFilter();
 	private boolean useAtcQueryFilter = false;
+	private boolean useMephaPreferredSorter = false;
 	
 	@SuppressWarnings("rawtypes")
 	private List filtered = null;
@@ -45,6 +56,9 @@ public class ArtikelstammFlatDataLoader extends FlatDataLoader implements IDoubl
 		applyQueryFilters();
 		addQueryFilter(new IncludeEANQueryFilter());
 		addQueryFilter(new NoVersionQueryFilter());
+		
+		useMephaPreferredSorter = CoreHub.globalCfg.get(
+			MephaPrefferedProviderSorterAction.CFG_PREFER_MEPHA, false);
 	}
 	
 	/**
@@ -110,8 +124,14 @@ public class ArtikelstammFlatDataLoader extends FlatDataLoader implements IDoubl
 		filtered = null;
 		setQuery();
 		applyQueryFilters();
-		if (orderFields != null) {
-			qbe.orderBy(false, orderFields);
+
+		if(useMephaPreferredSorter) {
+			// #3627 need to work-around 
+			qbe.addToken(" 1=1 ORDER BY FIELD(COMP_GLN, '7601001001121') DESC, DSCR ASC");
+		} else {
+			if (orderFields != null) {
+				qbe.orderBy(false, orderFields);
+			}
 		}
 		if (monitor.isCanceled()) {
 			return Status.CANCEL_STATUS;
@@ -229,13 +249,11 @@ public class ArtikelstammFlatDataLoader extends FlatDataLoader implements IDoubl
 	 */
 	public void setUseAtcQueryFilter(boolean useAtcQueryFilter){
 		this.useAtcQueryFilter = useAtcQueryFilter;
-		if(useAtcQueryFilter) {
-			dj.launch(0);
-		} else {
+		if (!useAtcQueryFilter) {
 			removeQueryFilter(atcQueryFilter);
 			atcQueryFilter.setAtcFilter(null);
-			dj.launch(0);
 		}
+		dj.launch(0);
 	}
 	
 	/**
@@ -244,5 +262,17 @@ public class ArtikelstammFlatDataLoader extends FlatDataLoader implements IDoubl
 	 */
 	public boolean isUseAtcQueryFilter(){
 		return useAtcQueryFilter;
+	}
+	
+	
+	/**
+	 * should filtering prefer Mepha articles? #3627
+	 * 
+	 * @param doPrefer
+	 *            if yes, first in list are Mepha articles A-Z then others A-Z
+	 */
+	public void setUseMephaPrefferedProviderSorter(boolean doPreferMepha){
+		this.useMephaPreferredSorter = doPreferMepha;
+		dj.launch(0);
 	}
 }
