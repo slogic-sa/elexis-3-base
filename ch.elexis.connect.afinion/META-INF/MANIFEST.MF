@@ -6,7 +6,7 @@ Bundle-Version: 3.0.0.qualifier
 Require-Bundle: org.eclipse.ui,
  org.eclipse.core.runtime,
  ch.rgw.utility,
- ch.elexis.core.ui.importer.div;bundle-version="3.0.0",
+ ch.elexis.core.ui.importer.div;bundle-version="3.0.1",
  ch.elexis.core.ui;bundle-version="3.0.0",
  ch.elexis.core.data;bundle-version="3.0.0"
 Bundle-Vendor: elexis.info

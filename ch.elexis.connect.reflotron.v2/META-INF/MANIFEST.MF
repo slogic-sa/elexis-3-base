@@ -9,7 +9,7 @@ Require-Bundle: org.eclipse.ui,
  ch.elexis.core.data;bundle-version="3.0.0",
  ch.elexis.core.ui;bundle-version="3.0.0",
  ch.elexis.core.ui.icons;bundle-version="3.0.0",
- ch.elexis.core.ui.importer.div,
+ ch.elexis.core.ui.importer.div;bundle-version="3.0.1",
  ch.rgw.utility,
  ch.elexis.core;bundle-version="3.0.0",
  org.slf4j.api
