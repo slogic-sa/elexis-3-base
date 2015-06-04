@@ -26,6 +26,7 @@ import at.medevit.atc_codes.ATCCode;
 import at.medevit.atc_codes.ATCCodeService;
 import at.medevit.ch.artikelstamm.elexis.common.internal.ATCCodeServiceConsumer;
 import ch.artikelstamm.elexis.common.ArtikelstammItem;
+import ch.elexis.core.data.activator.CoreHub;
 import ch.elexis.core.ui.UiDesk;
 import ch.elexis.core.ui.actions.FlatDataLoader;
 import ch.elexis.core.ui.actions.PersistentObjectLoader;
