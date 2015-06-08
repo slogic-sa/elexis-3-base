@@ -886,12 +886,12 @@ public class XMLExporter implements IRnOutputter {
 					el.setAttribute(ATTR_VALIDATE, TARMED_TRUE); // 28620
 					// get EAN provider
 					String ean = TarmedRequirements.getEAN(b.getMandant());
-					if (ean.equals(TarmedRequirements.EAN_PSEUDO))
+					if (ean == null || ean.equals(TarmedRequirements.EAN_PSEUDO))
 						ean = "unknown";
 					el.setAttribute(ATTR_EAN_PROVIDER, ean);
 					// get EAN resposible
 					ean = getResponsibleEAN(b);
-					if (ean.equals(TarmedRequirements.EAN_PSEUDO))
+					if (ean == null || ean.equals(TarmedRequirements.EAN_PSEUDO))
 						ean = "unknown";
 					el.setAttribute(ATTR_EAN_RESPONSIBLE, ean);
 					
