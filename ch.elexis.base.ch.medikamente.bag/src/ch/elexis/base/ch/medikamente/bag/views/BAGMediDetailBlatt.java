@@ -43,7 +43,6 @@ import ch.elexis.data.PersistentObject;
 import ch.elexis.medikamente.bag.data.BAGMedi;
 import ch.elexis.medikamente.bag.data.Interaction;
 import ch.elexis.medikamente.bag.data.Substance;
-import ch.rgw.tools.StringTool;
 
 public class BAGMediDetailBlatt extends Composite {
 	private static final String BAGMEDI_DETAIL_BLATT_INTERACTIONS =
@@ -79,22 +78,27 @@ public class BAGMediDetailBlatt extends Composite {
 			
 			public void reloadContent(PersistentObject po, InputData ltf){}
 			
-		}), new InputData("Therap. Gruppe", "Gruppe", InputData.Typ.STRING, null),
-		new InputData("Generika", "ExtInfo", InputData.Typ.STRING, "Generika"),
+		}),
+		new InputData("Therap. Gruppe", BAGMedi.FLD_GROUP, InputData.Typ.STRING, null),
+		new InputData("Generika", BAGMedi.FLD_GENERIC_PRODUCT, InputData.Typ.STRING, null),
 		new InputData("Pharmacode", "ExtInfo", InputData.Typ.STRING, "Pharmacode"),
-		new InputData("BAG-Dossier", "ExtInfo", InputData.Typ.STRING, "BAG-Dossier"),
-		new InputData("Swissmedic-Nr", "ExtInfo", InputData.Typ.STRING, "Swissmedic-Nr"),
-		new InputData("Swissmedic-Liste", "ExtInfo", InputData.Typ.STRING, "Swissmedic-Liste"),
-		new InputData("ExFactory", "EK_Preis", InputData.Typ.CURRENCY, null),
-		new InputData("Verkauf", "VK_Preis", InputData.Typ.CURRENCY, null),
-		new InputData("Limitatio", "ExtInfo", InputData.Typ.STRING, "Limitatio"),
-		new InputData("LimitatioPts", "ExtInfo", InputData.Typ.STRING, "LimitatioPts"),
-		new InputData("Max. Pckg. an Lager", "Maxbestand", Typ.STRING, null),
-		new InputData("Min. Pckg. an Lager", "Minbestand", Typ.STRING, null),
-		new InputData("Aktuell Pckg. an Lager", "Istbestand", Typ.STRING, null),
-		new InputData("Aktuell an Lager", "ExtInfo", Typ.INT, "Anbruch"),
-		new InputData("Stück pro Packung", "ExtInfo", Typ.INT, "Verpackungseinheit"),
-		new InputData("Stück pro Abgabe", "ExtInfo", Typ.INT, "Verkaufseinheit"),
+		new InputData("GTIN", Artikel.FLD_EAN, InputData.Typ.STRING, null),
+		new InputData("BAG-Dossier", "ExtInfo", InputData.Typ.STRING, BAGMedi.FLD_EXT_BAG_DOSSIER),
+		new InputData("Swissmedic-Nr", "ExtInfo", InputData.Typ.STRING,
+			BAGMedi.FLD_EXT_SWISSMEDIC_NR),
+		new InputData("Swissmedic-Liste", "ExtInfo", InputData.Typ.STRING,
+			BAGMedi.FLD_EXT_SWISSMEDIC_LIST),
+		new InputData("ExFactory", Artikel.FLD_EK_PREIS, InputData.Typ.CURRENCY, null),
+		new InputData("Verkauf", Artikel.FLD_VK_PREIS, InputData.Typ.CURRENCY, null),
+		new InputData("Limitatio", "ExtInfo", InputData.Typ.STRING, BAGMedi.FLD_EXT_LIMITATION),
+		new InputData("LimitatioPts", "ExtInfo", InputData.Typ.STRING,
+			BAGMedi.FLD_EXT_LIMITATION_PTS),
+		new InputData("Max. Pckg. an Lager", Artikel.MAXBESTAND, Typ.STRING, null),
+		new InputData("Min. Pckg. an Lager", Artikel.MINBESTAND, Typ.STRING, null),
+		new InputData("Aktuell Pckg. an Lager", Artikel.ISTBESTAND, Typ.STRING, null),
+		new InputData("Aktuell an Lager", "ExtInfo", Typ.INT, "Bruchteil"),
+		new InputData("Stück pro Packung", "ExtInfo", Typ.INT, "VerpackungsEinheit"),
+		new InputData("Stück pro Abgabe", "ExtInfo", Typ.INT, Artikel.VERKAUFSEINHEIT),
 		new InputData("Lieferant", "Lieferant", new LabeledInputField.IContentProvider() {
 			public void displayContent(PersistentObject po, InputData ltf){
 				String lbl = ((Artikel) po).getLieferant().getLabel();
@@ -190,7 +194,7 @@ public class BAGMediDetailBlatt extends Composite {
 			
 			@Override
 			public void focusLost(final FocusEvent e){
-				actMedi.set("keywords", tKeywords.getText());
+				actMedi.setKeywords(tKeywords.getText());
 			}
 			
 		});
@@ -219,7 +223,7 @@ public class BAGMediDetailBlatt extends Composite {
 			
 			@Override
 			public void focusLost(final FocusEvent e){
-				actMedi.set("KompendiumText", tInfos.getText());
+				actMedi.setKompendiumText(tInfos.getText());
 			}
 			
 		});
@@ -240,8 +244,8 @@ public class BAGMediDetailBlatt extends Composite {
 		for (Interaction inter : m.getInteraktionen()) {
 			ldInteraktionen.add(inter);
 		}
-		tInfos.setText(StringTool.unNull(m.get("KompendiumText")));
-		tKeywords.setText(StringTool.unNull(m.get("keywords")));
+		tInfos.setText(m.getKompendiumText());
+		tKeywords.setText(m.getKeywords());
 		UserSettings.setExpandedState(ecSubst, BAGMEDI_DETAIL_BLATT_SUBSTANCES);
 		UserSettings.setExpandedState(ecInterakt, BAGMEDI_DETAIL_BLATT_INTERACTIONS);
 		UserSettings.setExpandedState(ecFachinfo, BAGMEDI_DETAIL_BLATT_PROFINFOS);

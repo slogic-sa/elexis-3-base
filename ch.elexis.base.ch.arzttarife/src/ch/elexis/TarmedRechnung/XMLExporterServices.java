@@ -70,6 +70,8 @@ public class XMLExporterServices {
 	private static final String TARMED_FALSE = "false"; //$NON-NLS-1$
 	private static final String TARMED_TRUE = "true"; //$NON-NLS-1$
 	
+	private static final String TARIF_TYPE_GTIN = "402"; //$NON-NLS-1$
+	
 	private Element servicesElement;
 	
 	private double sumTarmedAL = 0.0;
@@ -395,7 +397,7 @@ public class XMLExporterServices {
 					el.setAttribute(ATTR_VALIDATE, TARMED_TRUE); // 28620
 					ret.mAnalysen.addMoney(mAmountLocal);
 				} else if ((v instanceof Medikament) || (v instanceof Medical)
-					|| (v.getCodeSystemCode() == "400")) { //$NON-NLS-1$
+					|| (v.getCodeSystemCode() == TARIF_TYPE_GTIN)) { //$NON-NLS-1$
 					el = new Element(ELEMENT_RECORD_DRUG, XMLExporter.nsinvoice);
 					Artikel art = (Artikel) v;
 					double mult = art.getFactor(tt, rechnung.getFall());
@@ -415,10 +417,9 @@ public class XMLExporterServices {
 					// end corrections
 					el.setAttribute(ATTR_UNIT, XMLTool.moneyToXmlDouble(einzelpreis));
 					el.setAttribute(ATTR_UNIT_FACTOR, XMLTool.doubleToXmlDouble(mult, 2));
-					el.setAttribute(XMLExporter.ATTR_TARIFF_TYPE, "400"); // Pharmacode-basiert //$NON-NLS-1$
-					String pk = ((Artikel) v).getPharmaCode();
-					el.setAttribute(XMLExporter.ATTR_CODE,
-						StringTool.pad(StringTool.LEFT, '0', pk, 7));
+					el.setAttribute(XMLExporter.ATTR_TARIFF_TYPE, TARIF_TYPE_GTIN); // GTIN based medication cataloge //$NON-NLS-1$
+					String gtin = ((Artikel) v).getEAN();
+					el.setAttribute(XMLExporter.ATTR_CODE, gtin);
 					el.setAttribute(XMLExporter.ATTR_AMOUNT, XMLTool.moneyToXmlDouble(mAmountLocal));
 					XMLExporterUtil.setVatAttribute(verrechnet, mAmountLocal, el, vatSummer);
 					String ckzl = art.getExt(MedikamentImporter.KASSENTYP);

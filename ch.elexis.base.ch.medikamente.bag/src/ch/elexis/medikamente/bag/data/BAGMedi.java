@@ -42,27 +42,56 @@ public class BAGMedi extends Artikel implements Comparable<BAGMedi> {
 	public static final String IMG_GENERIKUM = "ch.elexis.medikamente.bag.generikum";
 	public static final String IMG_HAS_GENERIKA = "ch.elexis.medikamente.bag.has_generika";
 	public static final String IMG_ORIGINAL = "ch.elexis.medikamente.bag.original";
+	
+	public static final String FLD_GENERIC_PRODUCT = "Generikum";
+	public static final String FLD_PRODUCT = "product";
+	public static final String FLD_SUBSTANCE = "substance";
+	public static final String FLD_KEYWORDS = "keywords";
+	public static final String FLD_PRESCRIPTION = "prescription";
+	public static final String FLD_KOMPENDIUM_TXT = "KompendiumText";
+	public static final String FLD_GROUP = "Gruppe";
+	
+	public static final String FLD_EXTINFO = "ExtInfo";
+	public static final String FLD_EXT_PRODUCER_ID = "HerstellerID";
+	public static final String FLD_EXT_BAG_DOSSIER = "BAG-Dossier";
+	public static final String FLD_EXT_SWISSMEDIC_NR = "Swissmedic-Nr.";
+	public static final String FLD_EXT_SWISSMEDIC_LIST = "Swissmedic-Liste";
+	public static final String FLD_EXT_HEALTHINSURANCE_TYPE = "Kassentyp";
+	public static final String FLD_EXT_LIMITATION = "Limitatio";
+	public static final String FLD_EXT_LIMITATION_PTS = "LimitatioPts";
+	
 	static final IOptifier bagOptifier = new BAGOptifier();
 	
-	static final String extDB = "CREATE TABLE " + EXTTABLE + " ("
-		+ "ID				VARCHAR(25) primary key," + "lastupdate BIGINT,"
-		+ "deleted			CHAR(1) default '0'," + "keywords			VARCHAR(80)," + "prescription		TEXT,"
-		+ "KompendiumText	TEXT" + ");";
+	// @formatter:off
+	static final String extDB = 
+			"CREATE TABLE " 	+ EXTTABLE + " (" + 
+			"ID					VARCHAR(25) primary key," + 
+			"lastupdate 		BIGINT," + 
+			"deleted			CHAR(1) default '0'," + 
+			FLD_KEYWORDS 		+ " VARCHAR(80)," + 
+			FLD_PRESCRIPTION 	+ " TEXT," + 
+			FLD_KOMPENDIUM_TXT 	+ " TEXT" + ");";
 	
-	static final String jointDB = "CREATE TABLE " + JOINTTABLE + "("
-		+ "ID				VARCHAR(25) primary key," + "product			VARCHAR(25),"
-		+ "substance         VARCHAR(25)" + ");" + "CREATE INDEX CHEMBJ1 ON " + JOINTTABLE
-		+ " (product);" + "CREATE INDEX CHEMBJ2 ON " + JOINTTABLE + " (substance);"
-		+ "INSERT INTO " + JOINTTABLE + " (ID,substance) VALUES('VERSION','" + VERSION + "');";
+	static final String jointDB = 
+			"CREATE TABLE " 	+ JOINTTABLE + "(" + 
+			"ID					VARCHAR(25) primary key," + 
+			FLD_PRODUCT 		+" VARCHAR(25)," + 
+			FLD_SUBSTANCE		+ " VARCHAR(25)" + ");" + 
+			"CREATE INDEX CHEMBJ1 ON " + JOINTTABLE + " ("+FLD_PRODUCT+");" + 
+			"CREATE INDEX CHEMBJ2 ON " + JOINTTABLE + " ("+FLD_SUBSTANCE+");" + 
+			"INSERT INTO " + JOINTTABLE + " (ID,"+FLD_SUBSTANCE+") VALUES('VERSION','" + VERSION + "');";
+	
+	// @formatter:on
 	
 	public static final String CODESYSTEMNAME = "Medikament";
 	public static final String DOMAIN_PHARMACODE = "www.xid.ch/id/pk";
 	
 	static {
-		addMapping(Artikel.TABLENAME, "Gruppe=ExtId", "Generikum=Codeclass",
-			"inhalt=JOINT:substance:product:" + JOINTTABLE, "keywords=EXT:" + EXTTABLE
-				+ ":keywords", "prescription=EXT:" + EXTTABLE + ":prescription",
-			"KompendiumText=EXT:" + EXTTABLE + ":KompendiumText");
+		addMapping(Artikel.TABLENAME, FLD_GROUP + "=ExtId", FLD_GENERIC_PRODUCT + "=Codeclass",
+			"inhalt=JOINT:" + FLD_SUBSTANCE + ":" + FLD_PRODUCT + ":" + JOINTTABLE, FLD_KEYWORDS
+				+ "=EXT:" + EXTTABLE + ":" + FLD_KEYWORDS, FLD_PRESCRIPTION + "=EXT:" + EXTTABLE
+				+ ":" + FLD_PRESCRIPTION, FLD_KOMPENDIUM_TXT + "=EXT:" + EXTTABLE + ":"
+				+ FLD_KOMPENDIUM_TXT);
 		
 		Xid.localRegisterXIDDomainIfNotExists(DOMAIN_PHARMACODE, "Pharmacode",
 			Xid.ASSIGNMENT_REGIONAL);
@@ -73,7 +102,7 @@ public class BAGMedi extends Artikel implements Comparable<BAGMedi> {
 		} else {
 			String v =
 				getConnection().queryString(
-					"SELECT substance FROM " + JOINTTABLE + " WHERE ID='VERSION';");
+					"SELECT " + FLD_SUBSTANCE + " FROM " + JOINTTABLE + " WHERE ID='VERSION';");
 			VersionInfo vi = new VersionInfo(v);
 			if (vi.isOlder(VERSION)) {
 				if (vi.isOlder("0.1.1")) {
@@ -82,10 +111,9 @@ public class BAGMedi extends Artikel implements Comparable<BAGMedi> {
 				if (vi.isOlder("0.1.2")) {
 					createOrModifyTable("ALTER TABLE " + EXTTABLE + " add lastupdate BIGINT;");
 				}
-				getConnection()
-					.exec(
-						"UPDATE " + JOINTTABLE + " SET substance='" + VERSION
-							+ "' WHERE ID='VERSION';");
+				getConnection().exec(
+					"UPDATE " + JOINTTABLE + " SET " + FLD_SUBSTANCE + "='" + VERSION
+						+ "' WHERE ID='VERSION';");
 			}
 		}
 		// make sure, the substances table is created
@@ -105,17 +133,17 @@ public class BAGMedi extends Artikel implements Comparable<BAGMedi> {
 	 * @param row
 	 *            the line
 	 */
-	public BAGMedi(final String name, final String pharmacode){
-		super(name, CODESYSTEMNAME, pharmacode);
+	public BAGMedi(final String name, final String code){
+		super(name, CODESYSTEMNAME, code);
 		set("Klasse", getClass().getName());
 	}
 	
 	public boolean isGenericum(){
-		return checkNull(get("Generikum")).startsWith("G");
+		return checkNull(get(FLD_GENERIC_PRODUCT)).startsWith("G");
 	}
 	
 	public boolean hasGenerica(){
-		return get("Generikum").startsWith("O");
+		return get(FLD_GENERIC_PRODUCT).startsWith("O");
 	}
 	
 	public List<Substance> getSubstances(){
@@ -153,54 +181,77 @@ public class BAGMedi extends Artikel implements Comparable<BAGMedi> {
 	}
 	
 	public Kontakt getHersteller(){
-		return Kontakt.load(getExt("HerstellerID"));
+		return Kontakt.load(getExt(FLD_EXT_PRODUCER_ID));
+	}
+	
+	public String getKompendiumText(){
+		return checkNull(get(FLD_KOMPENDIUM_TXT));
+	}
+	
+	public void setKompendiumText(String text){
+		set(FLD_KOMPENDIUM_TXT, text);
+	}
+	
+	public String getKeywords(){
+		return checkNull(get(FLD_KEYWORDS));
+	}
+	
+	public void setKeywords(String keywords){
+		set(FLD_KEYWORDS, keywords);
 	}
 	
 	@SuppressWarnings("unchecked")
 	public void update(final String[] row){
 		Query<Organisation> qo = new Query<Organisation>(Organisation.class);
-		String id = qo.findSingle("Name", "=", row[0]);
+		String id = qo.findSingle("Name", "=", row[BAGMediImporter.PRODUCER]);
 		if (id == null) {
-			Organisation o = new Organisation(row[0], "Pharma");
+			Organisation o = new Organisation(row[BAGMediImporter.PRODUCER], "Pharma");
 			id = o.getId();
 		}
 		Map exi = getMap("ExtInfo");
-		exi.put("HerstellerID", id);
-		set("Generikum", row[1]);
-		exi.put("Pharmacode", row[2]);
-		exi.put("BAG-Dossier", row[3]);
-		exi.put("Swissmedic-Nr.", row[4]);
-		exi.put("Swissmedic-Liste", row[5]);
-		exi.put("Kassentyp", "1");
+		exi.put(FLD_EXT_PRODUCER_ID, id);
+		set(FLD_GENERIC_PRODUCT, row[BAGMediImporter.GENERIC]);
+		exi.put("Pharmacode", row[BAGMediImporter.PHARMACODE]);
+		exi.put(FLD_EXT_BAG_DOSSIER, row[BAGMediImporter.BAG_DOSSIER]);
+		exi.put(FLD_EXT_SWISSMEDIC_NR, row[BAGMediImporter.SWISSMEDIC_NR]);
+		exi.put(FLD_EXT_SWISSMEDIC_LIST, row[BAGMediImporter.SWISSMEDIC_LIST]);
+		exi.put(FLD_EXT_HEALTHINSURANCE_TYPE, "1");
 		try {
-			setEKPreis(new Money(Double.parseDouble(row[8])));
+			setEKPreis(new Money(Double.parseDouble(row[BAGMediImporter.PURCHASE_PRICE])));
 		} catch (NumberFormatException nex) {
 			setEKPreis(new Money());
-			log.warn("Parse error preis " + row[7] + ": " + row[8] + "/" + row[9]);
+			log.warn("Parse error preis " + row[BAGMediImporter.NAME] + ": "
+				+ row[BAGMediImporter.PURCHASE_PRICE] + "/" + row[BAGMediImporter.SELLING_PRICE]);
 			
 		}
 		try {
-			setVKPreis(new Money(Double.parseDouble(row[9])));
+			setVKPreis(new Money(Double.parseDouble(row[BAGMediImporter.SELLING_PRICE])));
 		} catch (NumberFormatException ex) {
 			setVKPreis(new Money());
-			log.warn("Parse error preis " + row[7] + ": " + row[8] + "/" + row[9]);
+			log.warn("Parse error preis " + row[BAGMediImporter.NAME] + ": "
+				+ row[BAGMediImporter.PURCHASE_PRICE] + "/" + row[BAGMediImporter.SELLING_PRICE]);
 			
 		}
 		
-		if (row[10].equals("Y")) {
-			exi.put("Limitatio", "Y");
-			exi.put("LimitatioPts", row[11]);
+		if (row[BAGMediImporter.LIMITATION].equals("Y")) {
+			exi.put(FLD_EXT_LIMITATION, "Y");
+			exi.put(FLD_EXT_LIMITATION_PTS, row[BAGMediImporter.LIMITATION_PTS]);
 		} else {
 			exi.remove("Limitation");
 		}
+		
+		if (row.length > 12) {
+			set(FLD_GROUP, row[BAGMediImporter.GROUP]);
+		}
+		
 		if (row.length > 13) {
-			if (!StringTool.isNothing(row[13])) {
-				String[] substName = row[13].split("\\|");
+			if (!StringTool.isNothing(row[BAGMediImporter.SUBSTANCE])) {
+				String[] substName = row[BAGMediImporter.SUBSTANCE].split("\\|");
 				LinkedList<Substance> substances = new LinkedList<Substance>();
 				for (String n : substName) {
 					Substance s = Substance.find(n);
 					if (s == null) {
-						s = new Substance(n, row[12]);
+						s = new Substance(n, row[BAGMediImporter.GROUP]);
 					}
 					substances.add(s);
 				}
@@ -214,10 +265,11 @@ public class BAGMedi extends Artikel implements Comparable<BAGMedi> {
 			}
 			
 		}
-		if (row.length > 12) {
-			set("Gruppe", row[12]);
+		
+		if (row.length > 16) {
+			setEAN(row[BAGMediImporter.GTIN]);
 		}
-		setMap("ExtInfo", exi);
+		setMap(FLD_EXTINFO, exi);
 	}
 	
 	@Override
@@ -237,12 +289,12 @@ public class BAGMedi extends Artikel implements Comparable<BAGMedi> {
 	
 	@Override
 	public String getCodeSystemCode(){
-		return "400";
+		return CODESYSTEM_CODE_GTIN;
 	}
 	
 	@Override
 	public String getCode(){
-		return getPharmaCode();
+		return getEAN();
 	}
 	
 	public static BAGMedi load(final String id){

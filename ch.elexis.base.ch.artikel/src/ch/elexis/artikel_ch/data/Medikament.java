@@ -38,7 +38,7 @@ public class Medikament extends Artikel {
 	
 	@Override
 	public String getCode(){
-		return getPharmaCode();
+		return getEAN();
 	}
 	
 	public static Medikament load(String id){

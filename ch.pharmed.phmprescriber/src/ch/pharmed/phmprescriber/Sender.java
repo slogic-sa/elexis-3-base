@@ -289,30 +289,19 @@ public class Sender  {
 	    	
 			//Article elements
 			Artikel article = actualLine.getArtikel();
-						
-					
-			Products[i].setPharmacode(null);
+			Products[i].setPharmacode(BigInteger.valueOf(111));
 			Products[i].setEanId(null);
-
-			if (article.getPharmaCode().length() > 0){
-					Products[i].setPharmacode(new BigInteger(article.getPharmaCode()));
-					
-				}
 			
-			 if (article.getEAN().length() > 0){
-					Products[i].setEanId(new BigInteger(article.getEAN()));
-					
-				}
-			 
-			 //Check, whether there is an undefined article
-			 if (Products[i].getPharmacode() == null & Products[i].getEanId() == null){
-				 
-				 Products[i].setPharmacode(BigInteger.valueOf(111));
-				 Products[i].setEanId(BigInteger.valueOf(111));
-						 
-				 Products[i].setProductName(article.getLabel());
-			 }
-			 
+			if (article.getEAN().length() > 0) {
+				Products[i].setEanId(new BigInteger(article.getEAN()));
+			}
+			
+			//Check, whether there is an undefined article
+			if (Products[i].getEanId() == null) {
+				Products[i].setEanId(BigInteger.valueOf(111));
+				Products[i].setProductName(article.getLabel());
+			}
+			
 			//Set the default to one
 			Products[i].setPrescriptorQty(Integer.valueOf(1));
 					

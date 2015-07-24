@@ -38,9 +38,24 @@ public class BAGMediImporter extends ImporterPage {
 	static Query<Artikel> qbe = new Query<Artikel>(Artikel.class);
 	static Logger log = Logger.getLogger(BAGMediImporter.class.getName());
 	
-	public BAGMediImporter(){
-		// TODO Auto-generated constructor stub
-	}
+	public static final int PRODUCER = 0;
+	public static final int GENERIC = 1;
+	public static final int PHARMACODE = 2;
+	public static final int BAG_DOSSIER = 3;
+	public static final int SWISSMEDIC_NR = 4;
+	public static final int SWISSMEDIC_LIST = 5;
+	public static final int NAME = 7;
+	public static final int PURCHASE_PRICE = 8;
+	public static final int SELLING_PRICE = 9;
+	public static final int LIMITATION = 10;
+	public static final int LIMITATION_PTS = 11;
+	public static final int GROUP = 12;
+	public static final int SUBSTANCE = 13;
+	public static final int GTIN = 16;
+	
+	private static String pharmacode;
+	
+	public BAGMediImporter(){}
 	
 	@Override
 	public Composite createPage(final Composite parent){
@@ -66,7 +81,8 @@ public class BAGMediImporter extends ImporterPage {
 			ew.setFieldTypes(new Class[] {
 				String.class, Character.class, Integer.class, Integer.class, Integer.class,
 				Character.class, String.class, String.class, Double.class, Double.class,
-				String.class, Integer.class, Integer.class, String.class, Integer.class
+				String.class, Integer.class, Integer.class, String.class, Integer.class,
+				String.class, Integer.class
 			});
 			for (int i = f; i < l; i++) {
 				List<String> row = ew.getRow(i);
@@ -92,53 +108,54 @@ public class BAGMediImporter extends ImporterPage {
 	 * Import a medicament from one row of the BAG-Medi file
 	 * 
 	 * @param row
+	 *            contains relevant information about the article to include
+	 * 
 	 *            <pre>
-	 * 		row[0] = ID,bzw Name
-	 * 		row[1] = Generikum
-	 * 		row[2] = Pharmacode
-	 * 	 	row[3] = BAG-Dossier
-	 * 		row[4] = Swissmedic-Nr
-	 * 		row[5] = Swissmedic-Liste
-	 * 	 	row[6]
-	 * 		row[7] = Namen
-	 * 		row[8] = EK-Preis
-	 *      row[9] = VK-Preis
-	 *      row[10]= Limitatio (Y/N)
-	 *      row[11]= LimitatioPts
-	 *      row[12]= Gruppe (optional)
-	 *      row[13]= Substance (optional)
+	 *  [0]  {@link BAGMediImporter#PRODUCER}
+	 *  [1]  {@link BAGMediImporter#GENERIC}
+	 *  [2]  {@link BAGMediImporter#PHARMACODE}
+	 *  [3]  {@link BAGMediImporter#BAG_DOSSIER}
+	 *  [4]  {@link BAGMediImporter#SWISSMEDIC_NR}
+	 *  [5]  {@link BAGMediImporter#SWISSMEDIC_LIST}
+	 *  [7]  {@link BAGMediImporter#NAME}
+	 *  [8]  {@link BAGMediImporter#PURCHASE_PRICE}
+	 *  [9]  {@link BAGMediImporter#SELLING_PRICE}
+	 *  [10] {@link BAGMediImporter#LIMITATION}
+	 *  [11] {@link BAGMediImporter#LIMITATION_PTS}
+	 *  [12] {@link BAGMediImporter#GROUP}
+	 *  [13] {@link BAGMediImporter#SUBSTANCE}
+	 *  [16] {@link BAGMediImporter#GTIN}
 	 * </pre>
-	 * @return
+	 * @return true in case of a successfull import, false otherwise
 	 */
 	public static boolean importUpdate(final String[] row) throws ElexisException{
-		String pharmacode = "0";
+		String gtin = "";
 		BAGMedi imp = null;
-		// Kein Pharmacode, dann nach Name suchen
-		if (StringTool.isNothing(row[2].trim())) {
-			String mid = qbe.findSingle(Artikel.FLD_NAME, "=", row[7]);
+		
+		// no GTIN and no pharmacode given, try resolution by NAME
+		if (StringTool.isNothing(row[GTIN].trim()) && StringTool.isNothing(row[PHARMACODE].trim())) {
+			String mid = qbe.findSingle(Artikel.FLD_NAME, Query.EQUALS, row[NAME]);
 			if (mid != null) {
 				imp = BAGMedi.load(mid);
 			}
 		} else {
-			try {
-				// strip leading zeroes
-				int pcode = Integer.parseInt(row[2].trim());
-				pharmacode = Integer.toString(pcode);
-				
-			} catch (Exception ex) {
-				ExHandler.handle(ex);
-				log.log(Level.WARNING, "Pharmacode falsch: " + row[2]);
+			pharmacode = "0";
+			if (!StringTool.isNothing(row[PHARMACODE])) {
+				initPharmacode(row[PHARMACODE]);
 			}
+			gtin = row[GTIN].trim();
 			
 			qbe.clear(true);
-			qbe.add(Artikel.FLD_SUB_ID, "=", pharmacode);
-			qbe.or();
-			qbe.add(Artikel.FLD_SUB_ID, Query.EQUALS, row[2].trim());
+			qbe.add(Artikel.FLD_EAN, Query.EQUALS, gtin);
 			List<Artikel> lArt = qbe.execute();
 			if (lArt == null) {
-				throw new ElexisException(BAGMediImporter.class,
-					"Article list was null while scanning for " + pharmacode,
-					ElexisException.EE_UNEXPECTED_RESPONSE, true);
+				// try resolution via pharmacode -> question whether to keep or remove this code part
+				lArt = resolveByPharmacode(row[PHARMACODE]);
+				if (lArt == null) {
+					throw new ElexisException(BAGMediImporter.class,
+						"Article list was null while scanning for " + gtin,
+						ElexisException.EE_UNEXPECTED_RESPONSE, true);
+				}
 			}
 			if (lArt.size() > 1) {
 				// Duplikate entfernen, genau einen gültigen und existierenden Artikel behalten
@@ -168,7 +185,7 @@ public class BAGMediImporter extends ImporterPage {
 			imp = lArt.size() > 0 ? BAGMedi.load(lArt.get(0).getId()) : null;
 		}
 		if (imp == null || (!imp.isValid())) {
-			imp = new BAGMedi(row[7], pharmacode);
+			imp = new BAGMedi(row[NAME], pharmacode);
 			
 			String sql =
 				new StringBuilder().append("INSERT INTO ").append(BAGMedi.EXTTABLE)
@@ -192,6 +209,25 @@ public class BAGMediImporter extends ImporterPage {
 		}
 		imp.update(row);
 		return true;
+	}
+	
+	private static List<Artikel> resolveByPharmacode(String pharmaString) throws ElexisException{
+		qbe.clear(true);
+		qbe.add(Artikel.FLD_SUB_ID, "=", pharmacode);
+		qbe.or();
+		qbe.add(Artikel.FLD_SUB_ID, Query.EQUALS, pharmaString.trim());
+		return qbe.execute();
+	}
+	
+	private static void initPharmacode(String pString){
+		try {
+			// strip leading zeroes
+			int pcode = Integer.parseInt(pString.trim());
+			pharmacode = Integer.toString(pcode);
+		} catch (Exception ex) {
+			ExHandler.handle(ex);
+			log.log(Level.WARNING, "Pharmacode falsch: " + pString);
+		}
 	}
 	
 	@Override

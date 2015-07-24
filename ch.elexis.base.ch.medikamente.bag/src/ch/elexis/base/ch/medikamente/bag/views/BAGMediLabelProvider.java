@@ -20,7 +20,6 @@ import org.eclipse.swt.graphics.Image;
 
 import ch.elexis.core.constants.Preferences;
 import ch.elexis.core.data.activator.CoreHub;
-import ch.elexis.core.ui.Hub;
 import ch.elexis.core.ui.UiDesk;
 import ch.elexis.core.ui.util.viewers.DefaultLabelProvider;
 import ch.elexis.data.Artikel;
@@ -99,7 +98,7 @@ public class BAGMediLabelProvider extends DefaultLabelProvider implements ITable
 	public Image getColumnImage(final Object element, final int columnIndex){
 		if (element instanceof BAGMedi) {
 			BAGMedi bm = (BAGMedi) element;
-			String g = StringTool.unNull(bm.get("Generikum"));
+			String g = StringTool.unNull(bm.get(BAGMedi.FLD_GENERIC_PRODUCT));
 			/*
 			 * if(g.equals("")){ return Desk.getImage(Desk.IMG_ACHTUNG); }
 			 */

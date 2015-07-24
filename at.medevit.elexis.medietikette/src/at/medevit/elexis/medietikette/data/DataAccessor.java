@@ -28,9 +28,7 @@ public class DataAccessor implements IDataAccess {
 			"[Medietikette:-:-:Preis]", null, 0), new Element(IDataAccess.TYPE.STRING, "OPGroesse", //$NON-NLS-1$ //$NON-NLS-2$
 			"[Medietikette:-:-:OPGroesse]", null, 0), new Element(IDataAccess.TYPE.STRING, "Dosis", //$NON-NLS-1$ //$NON-NLS-2$
 			"[Medietikette:-:-:Dosis]", null, 0), new Element(IDataAccess.TYPE.STRING, "EAN", //$NON-NLS-1$ //$NON-NLS-2$
-			"[Medietikette:-:-:EAN]", null, 0), new Element(IDataAccess.TYPE.STRING, "Pharmacode", //$NON-NLS-1$ //$NON-NLS-2$
-			"[Medietikette:-:-:Pharmacode]", null, 0), //$NON-NLS-1$
-		new Element(IDataAccess.TYPE.STRING, "Vorschrift", //$NON-NLS-1$
+			"[Medietikette:-:-:EAN]", null, 0), new Element(IDataAccess.TYPE.STRING, "Vorschrift", //$NON-NLS-1$
 			"[Medietikette:-:-:Vorschrift]", null, 0) //$NON-NLS-1$
 		};
 	
@@ -99,13 +97,10 @@ public class DataAccessor implements IDataAccess {
 						"Kein Artikel selektiert.", //$NON-NLS-1$
 						null, false);
 		} else if (descriptor.equals("Pharmacode")) { //$NON-NLS-1$
-			if (selectedArticel != null)
-				ret = new Result<Object>(selectedArticel.getPharmaCode());
-			else
-				ret =
-					new Result<Object>(Result.SEVERITY.ERROR, IDataAccess.OBJECT_NOT_FOUND,
-						"Kein Artikel selektiert.", //$NON-NLS-1$
-						null, false);
+			ret =
+				new Result<Object>(Result.SEVERITY.ERROR, IDataAccess.OBJECT_NOT_FOUND,
+					"Pharmacode wird nicht mehr Unterstützt - bitte GTIN/EAN verwenden", //$NON-NLS-1$
+					null, false);
 		} else if (descriptor.equals("Dosis")) { //$NON-NLS-1$
 			if (selectedPrescription != null)
 				ret = new Result<Object>(selectedPrescription.getDosis());

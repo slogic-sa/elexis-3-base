@@ -478,16 +478,16 @@ public class ArtikelstammItem extends Artikel implements IArtikelstammItem {
 	
 	@Override
 	public String getCodeSystemCode(){
-		String pharmaCode = getPharmaCode();
-		if (pharmaCode != null && pharmaCode.length() > 3) {
-			return "400";
+		String gtin = getEAN();
+		if (gtin != null && !gtin.isEmpty()) {
+			return CODESYSTEM_CODE_GTIN;
 		}
 		return super.getCodeSystemCode();
 	}
 	
 	@Override
 	public String getCode(){
-		return get(FLD_PHAR);
+		return getEAN();
 	}
 	
 	@Override
