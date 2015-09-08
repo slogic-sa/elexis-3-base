@@ -107,6 +107,15 @@ public class TerminLabel extends Composite {
 				super.mouseUp(e);
 			}
 			
+			@Override
+			public void mouseDown(MouseEvent e){
+				if (e.stateMask == SWT.CTRL) {
+					lbl.setToolTipText("kopieren");
+				} else {
+					lbl.setToolTipText("verschieben");
+				}
+				ElexisEventDispatcher.fireSelectionEvent(t.getKontakt());
+			}
 		});
 		new PersistentObjectDragSource(lbl, new PersistentObjectDragSource.ISelectionRenderer() {
 			
