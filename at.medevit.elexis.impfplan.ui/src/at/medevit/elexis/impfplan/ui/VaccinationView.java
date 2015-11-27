@@ -194,7 +194,7 @@ public class VaccinationView extends ViewPart {
 			vaccinationHeaderDefinition =
 				new VaccinationPlanHeaderDefinition(HEADER_ID_SHOW_ADMINISTERED,
 					"Nur verabreichte Impfungen", new ArrayList<String>(atc),
-					Collections.emptyList());
+					new ArrayList<String>());
 		}
 		vaccinationComposite.updateUi(vaccinationHeaderDefinition, vaccinations,
 			new TimeTool(pat.getGeburtsdatum()));
