@@ -56,8 +56,6 @@ import org.jdom.output.XMLOutputter;
 import org.jdom.transform.JDOMSource;
 
 import ch.elexis.TarmedRechnung.XMLExporter.VatRateSum.VatRateElement;
-import ch.elexis.artikel_ch.data.Medical;
-import ch.elexis.artikel_ch.data.Medikament;
 import ch.elexis.artikel_ch.data.MedikamentImporter;
 import ch.elexis.artikel_ch.data.MiGelArtikel;
 import ch.elexis.base.ch.ebanking.esr.ESR;
@@ -820,8 +818,10 @@ public class XMLExporter implements IRnOutputter {
 					el.setAttribute(ATTR_OBLIGATION, TARMED_TRUE); // 28630
 					el.setAttribute(ATTR_VALIDATE, TARMED_TRUE); // 28620
 					mAnalysen.addMoney(mAmountLocal);
-				} else if ((v instanceof Medikament) || (v instanceof Medical)
-					|| (v.getCodeSystemCode() == "400")) { //$NON-NLS-1$
+				} else if ("Medikamente".equals(v.getCodeSystemName()) //$NON-NLS-1$
+					|| "Medicals".equals(v.getCodeSystemName()) //$NON-NLS-1$
+					|| "400".equals(v.getCodeSystemCode()) //$NON-NLS-1$
+					|| "402".equals(v.getCodeSystemCode())) {
 					el = new Element(ELEMENT_RECORD_DRUG, ns);
 					Artikel art = (Artikel) v;
 					double mult = art.getFactor(tt, actFall);
@@ -841,9 +841,18 @@ public class XMLExporter implements IRnOutputter {
 					// end corrections
 					el.setAttribute(ATTR_UNIT, XMLTool.moneyToXmlDouble(einzelpreis));
 					el.setAttribute(ATTR_UNIT_FACTOR, XMLTool.doubleToXmlDouble(mult, 2));
-					el.setAttribute(ATTR_TARIFF_TYPE, "400"); // Pharmacode-basiert //$NON-NLS-1$
-					String pk = ((Artikel) v).getPharmaCode();
-					el.setAttribute(ATTR_CODE, StringTool.pad(StringTool.LEFT, '0', pk, 7));
+					el.setAttribute(XMLExporter.ATTR_TARIFF_TYPE, v.getCodeSystemCode());
+					if ("402".equals(v.getCodeSystemCode())) { // GTIN-basiert //$NON-NLS-1$
+						String gtin = ((Artikel) v).getEAN();
+						el.setAttribute(XMLExporter.ATTR_CODE, gtin);
+					} else if ("400".equals(v.getCodeSystemCode())) { // Pharmacode-basiert //$NON-NLS-1$
+						String pk = ((Artikel) v).getPharmaCode();
+						el.setAttribute(XMLExporter.ATTR_CODE,
+							StringTool.pad(StringTool.LEFT, '0', pk, 7));
+					} else {
+						log.log("Unknown medical code " + v.getCodeSystemCode()
+							+ " encountered for " + v.getCodeSystemName() + "@" + v, Log.WARNINGS);
+					}
 					el.setAttribute(ATTR_AMOUNT, XMLTool.moneyToXmlDouble(mAmountLocal));
 					setVatAttribute(vv, mAmountLocal, el, vatSummer);
 					String ckzl = art.getExt(MedikamentImporter.KASSENTYP);
@@ -917,8 +926,10 @@ public class XMLExporter implements IRnOutputter {
 				el.setAttribute(ATTR_QUANTITY, Double.toString(zahl)); // 22350
 				el.setAttribute(ATTR_DATE_BEGIN, dateForTarmed); // 22370
 				el.setText(vv.getText()); // 22340
-				// el.setAttribute("code",v.getCode()); // 22330
-				setAttributeWithDefault(el, ATTR_CODE, v.getCode(), StringConstants.ZERO); // 22330
+				// 22330 set code if still empty
+				if (el.getAttribute(XMLExporter.ATTR_CODE) == null) {
+					setAttributeWithDefault(el, ATTR_CODE, v.getCode(), StringConstants.ZERO); // 22330
+				}
 				services.addContent(el);
 			}
 		}

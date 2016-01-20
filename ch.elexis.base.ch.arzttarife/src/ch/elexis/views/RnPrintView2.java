@@ -411,8 +411,11 @@ public class RnPrintView2 extends ViewPart {
 			sb.append("■ "); //$NON-NLS-1$
 			sb.append(r.toString(TimeTool.DATE_GER)).append("\t"); //$NON-NLS-1$
 			sb.append(getValue(s, "tariff_type")).append("\t"); //$NON-NLS-1$ //$NON-NLS-2$
-			sb.append(getValue(s, "code")).append("\t"); //$NON-NLS-1$ //$NON-NLS-2$
-			sb.append(getValue(s, "ref_code")).append("\t"); //$NON-NLS-1$ //$NON-NLS-2$
+			String code = getValue(s, "code");
+			sb.append(code).append("\t"); //$NON-NLS-1$ //$NON-NLS-2$
+			if (code.length() < 10) {
+				sb.append(getValue(s, "ref_code")).append("\t"); //$NON-NLS-1$ //$NON-NLS-2$
+			}
 			sb.append(getValue(s, "number")).append("\t"); //$NON-NLS-1$ //$NON-NLS-2$
 			if (getValue(s, "body_location").startsWith("l")) //$NON-NLS-1$ //$NON-NLS-2$
 				sb.append("L\t");
