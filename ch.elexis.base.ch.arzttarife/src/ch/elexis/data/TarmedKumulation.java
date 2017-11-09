@@ -9,8 +9,7 @@ import ch.rgw.tools.VersionInfo;
 
 public class TarmedKumulation extends PersistentObject {
 	private static final String TABLENAME = "TARMED_KUMULATION"; //$NON-NLS-1$
-	private static final String VERSION = "1.0.0";
-	private static final String VERSION_ID = "Version";
+	private static final String VERSION = "1.1.0";
 	
 	public static final String FLD_MASTER_CODE = "MasterCode";
 	public static final String FLD_MASTER_ART = "MasterArt";
@@ -21,6 +20,9 @@ public class TarmedKumulation extends PersistentObject {
 	public static final String FLD_VALID_SIDE = "ValidSide";
 	public static final String FLD_VALID_FROM = "ValidFrom";
 	public static final String FLD_VALID_TO = "ValidTo";
+	public static final String FLD_LAW = "Law";
+	
+	private static final String VERSION_110 = "1.1.0";
 	
 	public static final String TYP_EXCLUSION = "E";
 	public static final String TYP_INCLUSION = "I";
@@ -29,6 +31,10 @@ public class TarmedKumulation extends PersistentObject {
 	public static TimeTool timeHelper = new TimeTool();
 	
 	// @formatter:off
+	private static final String upd110 = "ALTER TABLE " + TABLENAME + " ADD " + FLD_LAW + " VARCHAR(3);" 
+			+ "CREATE INDEX tarmedKumulation_IDX1 on " + TABLENAME + " (" + FLD_LAW	+ ");"
+			+ "INSERT INTO " + TABLENAME + " (ID, " + FLD_MASTER_CODE + ") VALUES (" + JdbcLink.wrap(TarmedLeistung.ROW_VERSION) + ", " + JdbcLink.wrap(VERSION_110) + ")";
+
 	public static final String createDB = "CREATE TABLE " + TABLENAME + " (" 
 		+"ID VARCHAR(25) primary key, "  
 		+"lastupdate BIGINT," 
@@ -42,22 +48,31 @@ public class TarmedKumulation extends PersistentObject {
 		+ "View					CHAR(1),"
 		+ "ValidSide			CHAR(1)," 
 		+ "ValidFrom			CHAR(10)," 
-		+ "ValidTo				CHAR(10)"
+		+ "ValidTo				CHAR(10),"
+		+ "Law					VARCHAR(3)"
 		+ ");"
 		+ "CREATE INDEX tarmedKumulation on " + TABLENAME + " (" + FLD_MASTER_CODE + ");"		
-		+ "INSERT INTO " + TABLENAME + " (ID, " + FLD_MASTER_CODE + ") VALUES (" + JdbcLink.wrap(VERSION_ID) + ", " + JdbcLink.wrap(VERSION) + ");";
+		+ "CREATE INDEX tarmedKumulation_IDX1 on " + TABLENAME + " (" + FLD_LAW + ");"		
+		+ "INSERT INTO " + TABLENAME + " (ID, " + FLD_MASTER_CODE + ") VALUES (" + JdbcLink.wrap(TarmedLeistung.ROW_VERSION) + ", " + JdbcLink.wrap(VERSION) + ");";
 	//@formatter:on
 	
 	static {
 		addMapping(TABLENAME, FLD_MASTER_CODE, FLD_MASTER_ART, FLD_SLAVE_CODE, FLD_SLAVE_ART,
-			FLD_TYP, FLD_VIEW, FLD_VALID_SIDE, FLD_VALID_FROM, FLD_VALID_TO);
+			FLD_TYP, FLD_VIEW, FLD_VALID_SIDE, FLD_VALID_FROM, FLD_VALID_TO, FLD_LAW);
 		
 		if (!tableExists(TABLENAME)) {
 			createOrModifyTable(createDB);
 		} else {
-			TarmedKumulation version = load(VERSION_ID);
+			TarmedKumulation version = load(TarmedLeistung.ROW_VERSION);
+			if (!version.exists()) {
+				createOrModifyTable(upd110);
+				version = load(TarmedLeistung.ROW_VERSION);
+			}
 			VersionInfo vi = new VersionInfo(version.get(FLD_MASTER_CODE));
 			if (vi.isOlder(VERSION)) {
+				if (vi.isOlder(VERSION_110)) {
+					createOrModifyTable(upd110);
+				}
 				version.set(FLD_MASTER_CODE, VERSION);
 			}
 		}
@@ -76,22 +91,18 @@ public class TarmedKumulation extends PersistentObject {
 	}
 	
 	public TarmedKumulation(String masterCode, String masterArt, String slaveCode, String slaveArt,
-		String typ, String view, String validSide, String from, String to){
+		String typ, String view, String validSide, String from, String to, String law){
 		create(null);
 		
 		String[] values = new String[] {
-			masterCode, masterArt, slaveCode, slaveArt, typ, view, validSide, from, to
+			masterCode, masterArt, slaveCode, slaveArt, typ, view, validSide, from, to, law
 		};
 		String[] fields =
 			new String[] {
 				FLD_MASTER_CODE, FLD_MASTER_ART, FLD_SLAVE_CODE, FLD_SLAVE_ART, FLD_TYP, FLD_VIEW,
-				FLD_VALID_SIDE, FLD_VALID_FROM, FLD_VALID_TO
+				FLD_VALID_SIDE, FLD_VALID_FROM, FLD_VALID_TO, FLD_LAW
 			};
 		set(fields, values);
-	}
-	
-	public static String getDBTableName(){
-		return TABLENAME;
 	}
 	
 	@Override

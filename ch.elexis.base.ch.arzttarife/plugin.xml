@@ -92,6 +92,10 @@
             class="ch.elexis.data.importer.TarmedReferenceDataImporter"
             referenceDataId="tarmed">
       </importer>
+      <importer
+            class="ch.elexis.data.importer.KVGTarmedReferenceDataImporter"
+            referenceDataId="tarmed_kvg">
+      </importer>
    </extension>
    <extension
          point="ch.elexis.core.ui.TextTemplateRequirement">

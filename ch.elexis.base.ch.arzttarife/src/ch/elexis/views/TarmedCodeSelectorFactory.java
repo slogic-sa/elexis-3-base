@@ -30,6 +30,7 @@ import ch.elexis.core.ui.util.viewers.DefaultLabelProvider;
 import ch.elexis.core.ui.util.viewers.SelectorPanelProvider;
 import ch.elexis.core.ui.util.viewers.SimpleWidgetProvider;
 import ch.elexis.core.ui.util.viewers.ViewerConfigurer;
+import ch.elexis.core.ui.util.viewers.ViewerConfigurer.ICommonViewerContentProvider;
 import ch.elexis.core.ui.views.codesystems.CodeSelectorFactory;
 import ch.elexis.data.PersistentObject;
 import ch.elexis.data.Query;
@@ -37,7 +38,6 @@ import ch.elexis.data.TarmedLeistung;
 
 public class TarmedCodeSelectorFactory extends CodeSelectorFactory {
 	SelectorPanelProvider slp;
-	ReadOnceTreeLoader tdl;
 	CommonViewer cv;
 	FieldDescriptor<?>[] fields = {
 		new FieldDescriptor<TarmedLeistung>("Ziffer", TarmedLeistung.FLD_CODE, Typ.STRING, null),
@@ -87,11 +87,15 @@ public class TarmedCodeSelectorFactory extends CodeSelectorFactory {
 		menu.add(tvfa);
 		cv.setContextMenu(menu);
 		
-		tdl =
-			new ReadOnceTreeLoader(cv, new Query<TarmedLeistung>(TarmedLeistung.class), "Parent",
-				"ID");
+		ICommonViewerContentProvider contentProvider = new ReadOnceTreeLoader(cv,
+			new Query<TarmedLeistung>(TarmedLeistung.class), "Parent", "ID");
+		if (TarmedLeistung.hasParentIdReference()) {
+			contentProvider = new TarmedCodeSelectorContentProvider(cv);
+		}
+		
 		ViewerConfigurer vc =
-			new ViewerConfigurer(tdl, new DefaultLabelProvider(), slp,
+			new ViewerConfigurer(contentProvider,
+				new DefaultLabelProvider(), slp,
 				new ViewerConfigurer.DefaultButtonProvider(), new SimpleWidgetProvider(
 					SimpleWidgetProvider.TYPE_TREE, SWT.NONE, null));
 		return vc;
@@ -105,8 +109,6 @@ public class TarmedCodeSelectorFactory extends CodeSelectorFactory {
 	@Override
 	public void dispose(){
 		cv.dispose();
-		tdl.dispose();
-		
 	}
 	
 	@Override
