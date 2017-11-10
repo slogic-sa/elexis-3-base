@@ -61,6 +61,7 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 	public static final String FLD_NICK = "Nickname";
 	public static final String FLD_PARENT = "Parent";
 	public static final String FLD_LAW = "Law";
+	public static final String FLD_ISCHAPTER = "ischapter";
 	
 	public static final String EXT_FLD_HIERARCHY_SLAVES = "HierarchySlaves";
 	public static final String EXT_FLD_SERVICE_GROUPS = "ServiceGroups";
@@ -86,21 +87,22 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 	private static final String VERSION_111 = "1.1.1";
 	private static final String VERSION_120 = "1.2.0";
 	private static final String VERSION_130 = "1.3.0";
-	private static final String upd110 = "ALTER TABLE TARMED ADD lastupdate BIGINT";
-	private static final String upd120 =
-		"ALTER TABLE TARMED ADD code VARCHAR(25);" + " ALTER TABLE TARMED MODIFY ID VARCHAR(25);"
-			+ " ALTER TABLE TARMED_EXTENSION MODIFY CODE VARCHAR(25);";
 	
 	public static final String ROW_VERSION = "Version";
 	
 	private TarmedExtension extension;
 	
 	// @formatter:off
-	private static final String upd130 = " ALTER TABLE TARMED MODIFY PARENT VARCHAR(25);"
-			+ " ALTER TABLE TARMED MODIFY ID VARCHAR(32);"
-			+ " ALTER TABLE TARMED MODIFY ID VARCHAR(32) primary key;"
-			+ " ALTER TABLE TARMED MODIFY Parent VARCHAR(32);"
-			+ " ALTER TABLE TARMED ADD Law VARCHAR(3);";
+	private static final String upd110 = "ALTER TABLE TARMED ADD lastupdate BIGINT";
+	private static final String upd120 = "ALTER TABLE TARMED ADD code VARCHAR(25);"
+			+ " ALTER TABLE TARMED MODIFY ID VARCHAR(25);"
+			+ " ALTER TABLE TARMED_EXTENSION MODIFY CODE VARCHAR(25);";
+
+	private static final String upd130 = " ALTER TABLE " + TABLENAME + " MODIFY Parent VARCHAR(32);"
+			+ " ALTER TABLE " + TABLENAME + " MODIFY ID VARCHAR(32);"
+			+ " ALTER TABLE " + TABLENAME + " ADD PRIMARY KEY (" + FLD_ID + ");"
+			+ " ALTER TABLE " + TABLENAME + " ADD Law VARCHAR(3);"
+			+ " ALTER TABLE " + TABLENAME + " ADD ischapter CHAR(1) default '0';";
 
 	public static final String createDB = "CREATE TABLE " + TABLENAME + " (" 
 		+"ID 					VARCHAR(32) primary key,"  
@@ -116,7 +118,8 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 		+ "Nickname				VARCHAR(25)," 
 		+ "tx255				VARCHAR(255),"
 		+ "code 				VARCHAR(25),"
-		+ "Law					VARCHAR(3)"
+		+ "Law					VARCHAR(3),"
+		+ "ischapter			CHAR(1)"
 		+ ");"
 		+ "CREATE INDEX tarmed_id on " + TABLENAME + " (" + FLD_ID + ");"		
 		+ "CREATE INDEX tarmed2 on " + TABLENAME + " (" + FLD_PARENT + ");"		
@@ -129,7 +132,7 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 			FLD_DIGNI_QUANTI, //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
 			FLD_SPARTE, FLD_TEXT + "=tx255", "Name=tx255", FLD_NICK, //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
 			"GueltigVon=S:D:GueltigVon", "GueltigBis=S:D:GueltigBis", //$NON-NLS-1$ //$NON-NLS-2$
-			"deleted", FLD_LAW //$NON-NLS-1$ 
+			"deleted", FLD_LAW, FLD_ISCHAPTER //$NON-NLS-1$ 
 		);
 		if (!tableExists(TABLENAME)) {
 			createOrModifyTable(createDB);
@@ -205,9 +208,14 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 		}, new String[] {
 			code, parent, DigniQuali, DigniQuanti, sparte
 		});
-		if (!isChapter) {
-			extension = new TarmedExtension(this);
+		if (isChapter) {
+			set(FLD_ISCHAPTER, "1");
 		}
+		extension = new TarmedExtension(this);
+	}
+	
+	public boolean isChapter(){
+		return get(FLD_ISCHAPTER).equals("1");
 	}
 	
 	@Override
@@ -749,7 +757,7 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 	
 	/**
 	 * Check if there is a parentId value not created with the new importer. Old imports created
-	 * parent with the code attribute.
+	 * parent reference using the code attribute.
 	 * 
 	 * @return
 	 * @since 3.4
@@ -773,5 +781,26 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 			connection.releaseStatement(stm);
 		}
 		return true;
+	}
+	
+	public static List<String> getAvailableLaws(){
+		List<String> ret = new ArrayList<>();
+		DBConnection connection = PersistentObject.getDefaultConnection();
+		Stm stm = connection.getStatement();
+		try {
+			ResultSet res = stm.query("SELECT DISTINCT Law FROM tarmed where ID <> '"
+				+ TarmedLeistung.ROW_VERSION + "';");
+			while (res.next()) {
+				String law = res.getString(1);
+				if (law != null) {
+					ret.add(law);
+				}
+			}
+		} catch (SQLException e) {
+			LoggerFactory.getLogger(TarmedLeistung.class).error("Error getting laws", e);
+		} finally {
+			connection.releaseStatement(stm);
+		}
+		return ret;
 	}
 }
