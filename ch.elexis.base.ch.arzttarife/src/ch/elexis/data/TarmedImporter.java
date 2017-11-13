@@ -120,7 +120,7 @@ public class TarmedImporter extends ImporterPage {
 		
 		lawCombo.setContentProvider(ArrayContentProvider.getInstance());
 		lawCombo.setInput(availableLaws);
-		
+		lawCombo.setSelection(new StructuredSelection(selectedLaw));
 		lawCombo.addSelectionChangedListener(new ISelectionChangedListener() {
 			@Override
 			public void selectionChanged(SelectionChangedEvent event){

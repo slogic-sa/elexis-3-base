@@ -13,6 +13,7 @@ package ch.elexis.views;
 import java.util.List;
 
 import org.eclipse.jface.viewers.IContentProvider;
+import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.jface.viewers.StructuredViewer;
 
 import ch.elexis.core.data.events.ElexisEvent;
@@ -69,6 +70,7 @@ public class TarmedSelectorPanelProvider extends SelectorPanelProvider {
 		if (viewer != null && dirty) {
 			dirty = false;
 			viewer.getControl().setRedraw(false);
+			viewer.setSelection(new StructuredSelection());
 			viewer.refresh();
 			viewer.getControl().setRedraw(true);
 		}

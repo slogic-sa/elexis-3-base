@@ -5,6 +5,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -92,12 +93,20 @@ public class ServiceImporter {
 						validTo.toString(TimeTool.DATE_COMPACT), law);
 					extension = tl.getExtension();
 					extensionMap = tl.loadExtension();
-					ImporterUtil.putResultSetToMap(extensionMap, res, "LEISTUNG_TYP", "SEITE", //$NON-NLS-1$//$NON-NLS-2$
-						"SEX", "ANAESTHESIE", "K_PFL", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-						"BEHANDLUNGSART", "TP_AL", "TP_ASSI", "TP_TL", "ANZ_ASSI", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
-						"LSTGIMES_MIN", "VBNB_MIN", "BEFUND_MIN", "RAUM_MIN", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
-						"WECHSEL_MIN", "F_AL", "F_TL"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 					
+					if (hasColumn(res, "F_AL_R")) {
+						ImporterUtil.putResultSetToMap(extensionMap, res, "LEISTUNG_TYP", "SEITE", //$NON-NLS-1$//$NON-NLS-2$
+							"SEX", "ANAESTHESIE", "K_PFL", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+							"BEHANDLUNGSART", "TP_AL", "TP_ASSI", "TP_TL", "ANZ_ASSI", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+							"LSTGIMES_MIN", "VBNB_MIN", "BEFUND_MIN", "RAUM_MIN", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+							"WECHSEL_MIN", "F_AL", "F_TL", "F_AL_R"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+					} else {
+						ImporterUtil.putResultSetToMap(extensionMap, res, "LEISTUNG_TYP", "SEITE", //$NON-NLS-1$//$NON-NLS-2$
+							"SEX", "ANAESTHESIE", "K_PFL", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+							"BEHANDLUNGSART", "TP_AL", "TP_ASSI", "TP_TL", "ANZ_ASSI", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+							"LSTGIMES_MIN", "VBNB_MIN", "BEFUND_MIN", "RAUM_MIN", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+							"WECHSEL_MIN", "F_AL", "F_TL"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+					}
 					// get QL_DIGNITAET
 					String dqua = getQLDignitaet();
 					
@@ -161,6 +170,25 @@ public class ServiceImporter {
 			}
 		}
 		return Status.OK_STATUS;
+	}
+	
+	private HashMap<String, Integer> columnMap = new HashMap<>();
+	
+	private boolean hasColumn(ResultSet res, String columnLabel){
+		Integer index = columnMap.get(columnLabel);
+		if (index != null && index > 0) {
+			return true;
+		} else if (index == null) {
+			try {
+				int found = res.findColumn(columnLabel);
+				columnMap.put(columnLabel, found);
+				return true;
+			} catch (SQLException ex) {
+				columnMap.put(columnLabel, -1);
+				return false;
+			}
+		}
+		return false;
 	}
 	
 	private String getParentId(String chapterCode){

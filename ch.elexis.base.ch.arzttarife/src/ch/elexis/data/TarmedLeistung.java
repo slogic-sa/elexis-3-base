@@ -204,13 +204,10 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 	public TarmedLeistung(final String id, final String code, final String parent,
 		final String DigniQuali, final String DigniQuanti, final String sparte, boolean isChapter){
 		create(id, new String[] {
-			FLD_CODE, FLD_PARENT, FLD_DIGNI_QUALI, FLD_DIGNI_QUANTI, FLD_SPARTE
+			FLD_CODE, FLD_PARENT, FLD_DIGNI_QUALI, FLD_DIGNI_QUANTI, FLD_SPARTE, FLD_ISCHAPTER
 		}, new String[] {
-			code, parent, DigniQuali, DigniQuanti, sparte
+			code, parent, DigniQuali, DigniQuanti, sparte, isChapter ? "1" : "0"
 		});
-		if (isChapter) {
-			set(FLD_ISCHAPTER, "1");
-		}
 		extension = new TarmedExtension(this);
 	}
 	
