@@ -355,15 +355,46 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 		return new TarmedLeistung(id);
 	}
 	
-	/** Eine Position vom code einlesen */
+	/**
+	 * Query for a {@link TarmedLeistung} using the code. The returned {@link TarmedLeistung} will
+	 * be valid today and will have no specific law.
+	 * 
+	 * @param code
+	 * @return null if no matching {@link TarmedLeistung} found
+	 * @deprecated law should always be specified, use getFromCode with law parameter
+	 */
 	public static IVerrechenbar getFromCode(final String code){
 		return getFromCode(code, new TimeTool());
 	}
 	
-	/** Eine Position vom code einlesen */
+	/**
+	 * Query for a {@link TarmedLeistung} using the code. The returned {@link TarmedLeistung} will
+	 * be valid on date. It will have no specific law.
+	 *
+	 * @param code
+	 * @param date
+	 * @return null if no matching {@link TarmedLeistung} found
+	 * @deprecated law should always be specified, use getFromCode with law parameter
+	 */
 	public static IVerrechenbar getFromCode(final String code, TimeTool date){
+		return getFromCode(code, date, "");
+	}
+	
+	/**
+	 * Query for a {@link TarmedLeistung} using the code. The returned {@link TarmedLeistung} will
+	 * be valid on date, and will be from the cataloge specified by law.
+	 * 
+	 * @param code
+	 * @param date
+	 * @param law
+	 * @return null if no matching {@link TarmedLeistung} found
+	 */
+	public static IVerrechenbar getFromCode(final String code, TimeTool date, String law){
 		Query<TarmedLeistung> query = new Query<TarmedLeistung>(TarmedLeistung.class);
-		query.add(FLD_CODE, "=", code);
+		query.add(FLD_CODE, Query.EQUALS, code);
+		if (law != null) {
+			query.add(FLD_LAW, Query.EQUALS, law);
+		}
 		List<TarmedLeistung> leistungen = query.execute();
 		for (TarmedLeistung tarmedLeistung : leistungen) {
 			TimeTool validFrom = tarmedLeistung.getGueltigVon();

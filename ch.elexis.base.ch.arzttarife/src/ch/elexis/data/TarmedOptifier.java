@@ -100,7 +100,7 @@ public class TarmedOptifier implements IOptifier {
 		 * Fachspezialisierung des aktuellen Mandanten usw. vereinbar ist
 		 */
 
-		Hashtable ext = tc.loadExtension();
+		Hashtable<String, String> ext = tc.loadExtension();
 
 		// Gültigkeit gemäss Datum prüfen
 		if (bOptify) {
@@ -132,21 +132,21 @@ public class TarmedOptifier implements IOptifier {
 			}
 
 			if (gesetz.equalsIgnoreCase("KVG") && tc.getCode().matches("39.0011")) {
-				return this.add(TarmedLeistung.getFromCode("39.0010"), kons);
+				return this.add(getKonsVerrechenbar("39.0010", kons), kons);
 			} else if (!gesetz.equalsIgnoreCase("KVG") && tc.getCode().matches("39.0010")) {
-				return this.add(TarmedLeistung.getFromCode("39.0011"), kons);
+				return this.add(getKonsVerrechenbar("39.0011", kons), kons);
 			}
 
 			if (gesetz.equalsIgnoreCase("KVG") && tc.getCode().matches("39.0016")) {
-				return this.add(TarmedLeistung.getFromCode("39.0015"), kons);
+				return this.add(getKonsVerrechenbar("39.0015", kons), kons);
 			} else if (!gesetz.equalsIgnoreCase("KVG") && tc.getCode().matches("39.0015")) {
-				return this.add(TarmedLeistung.getFromCode("39.0016"), kons);
+				return this.add(getKonsVerrechenbar("39.0016", kons), kons);
 			}
 
 			if (gesetz.equalsIgnoreCase("KVG") && tc.getCode().matches("39.0021")) {
-				return this.add(TarmedLeistung.getFromCode("39.0020"), kons);
+				return this.add(getKonsVerrechenbar("39.0020", kons), kons);
 			} else if (!gesetz.equalsIgnoreCase("KVG") && tc.getCode().matches("39.0020")) {
-				return this.add(TarmedLeistung.getFromCode("39.0021"), kons);
+				return this.add(getKonsVerrechenbar("39.0021", kons), kons);
 			}
 		}
 
@@ -340,9 +340,9 @@ public class TarmedOptifier implements IOptifier {
 		if (!tc.getCode().equals(DEFAULT_TAX_XRAY_ROOM) && !tc.getCode().matches("39.002[01]")
 			&& tc.getParent().startsWith(CHAPTER_XRAY)) {
 			if (CoreHub.userCfg.get(Preferences.LEISTUNGSCODES_OPTIFY_XRAY, true)) {
-				add(TarmedLeistung.getFromCode(DEFAULT_TAX_XRAY_ROOM), kons);
+				add(getKonsVerrechenbar(DEFAULT_TAX_XRAY_ROOM, kons), kons);
 				// add 39.0020, will be changed according to case (see above)
-				add(TarmedLeistung.getFromCode("39.0020"), kons);
+				add(getKonsVerrechenbar("39.0020", kons), kons);
 			}
 		}
 		
@@ -375,8 +375,8 @@ public class TarmedOptifier implements IOptifier {
 					if (p != null) {
 						String alter = p.getAlter();
 						if (Integer.parseInt(alter) < 6) {
-							TarmedLeistung tl = (TarmedLeistung) TarmedLeistung.getFromCode("00.0040",
-									new TimeTool(kons.getDatum()));
+							TarmedLeistung tl =
+								(TarmedLeistung) getKonsVerrechenbar("00.0040", kons);
 							add(tl, kons);
 						}
 					}
@@ -490,6 +490,15 @@ public class TarmedOptifier implements IOptifier {
 			return new Result<IVerrechenbar>(Result.SEVERITY.OK, PREISAENDERUNG, "Preis", null, false); //$NON-NLS-1$
 		}
 		return new Result<IVerrechenbar>(null);
+	}
+	
+	private IVerrechenbar getKonsVerrechenbar(String code, Konsultation kons){
+		TimeTool date = new TimeTool(kons.getDatum());
+		if (kons.getFall() != null) {
+			String law = kons.getFall().getRequiredString("Gesetz");
+			return TarmedLeistung.getFromCode(code, date, law);
+		}
+		return null;
 	}
 	
 	private boolean isReferenceInfoAvailable(){
