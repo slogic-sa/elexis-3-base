@@ -6,6 +6,7 @@ import ch.rgw.tools.JdbcLink;
 import ch.rgw.tools.VersionInfo;
 
 public class TarmedExtension extends PersistentObject {
+	
 	private static final String TABLENAME = "TARMED_EXTENSION"; //$NON-NLS-1$
 	private static final String VERSION = "1.0.0";
 	
@@ -123,5 +124,4 @@ public class TarmedExtension extends PersistentObject {
 	protected String getTableName(){
 		return TABLENAME;
 	}
-	
 }

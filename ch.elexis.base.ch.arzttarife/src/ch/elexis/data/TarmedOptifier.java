@@ -230,7 +230,7 @@ public class TarmedOptifier implements IOptifier {
 					}
 				}
 			}
-			newVerrechnet.setDetail(AL, Integer.toString(tc.getAL()));
+			newVerrechnet.setDetail(AL, Integer.toString(tc.getAL(kons.getMandant())));
 			newVerrechnet.setDetail(TL, Integer.toString(tc.getTL()));
 			lst.add(newVerrechnet);
 		}
@@ -356,7 +356,7 @@ public class TarmedOptifier implements IOptifier {
 					String tlc = tl.getCode();
 					double z = v.getZahl();
 					if (tlc.matches("29.20[12345678]0") || (tlc.equals("29.2200"))) {
-						sumAL += (z * tl.getAL()) / 2;
+						sumAL += (z * tl.getAL(kons.getMandant())) / 2;
 						sumTL += (z * tl.getTL()) / 4;
 					}
 				}
@@ -395,7 +395,7 @@ public class TarmedOptifier implements IOptifier {
 					int z = v.getZahl();
 					if (tlc.equals("04.1910") || tlc.equals("04.1920") || tlc.equals("04.1940") //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 							|| tlc.equals("04.1950")) { //$NON-NLS-1$
-						sumAL += tl.getAL() * z;
+						sumAL += tl.getAL(kons.getMandant()) * z;
 						sumTL += tl.getTL() * z;
 						// double al = (tl.getAL() * 15) / 10.0;
 						// double tel = (tl.getTL() * 15) / 10.0;
@@ -421,7 +421,7 @@ public class TarmedOptifier implements IOptifier {
 					String tlc = tl.getCode();
 					int z = v.getZahl();
 					if (tlc.equals("04.0610") || tlc.equals("04.0630") || tlc.equals("04.0640")) {
-						sumAL += tl.getAL() * z;
+						sumAL += tl.getAL(kons.getMandant()) * z;
 						sumTL += tl.getTL() * z;
 					}
 				}
@@ -449,7 +449,7 @@ public class TarmedOptifier implements IOptifier {
 						if (tl.getCode().startsWith("00.25")) { //$NON-NLS-1$
 							continue;
 						}
-						sum += (tl.getAL() * v.getZahl());
+						sum += (tl.getAL(kons.getMandant()) * v.getZahl());
 						// int summand = tl.getAL() >> 2; // TODO ev. float?
 						// -> Rundung?
 						// ((sum.addCent(summand * v.getZahl());
@@ -472,7 +472,7 @@ public class TarmedOptifier implements IOptifier {
 						}
 						// int summand = tl.getAL() >> 1;
 						// sum.addCent(summand * v.getZahl());
-						sum += (tl.getAL() * v.getZahl());
+						sum += (tl.getAL(kons.getMandant()) * v.getZahl());
 					}
 				}
 				// check.setPreis(sum.multiply(factor));

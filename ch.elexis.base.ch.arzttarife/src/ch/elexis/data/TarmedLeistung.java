@@ -47,13 +47,17 @@ import ch.rgw.tools.VersionInfo;
  */
 public class TarmedLeistung extends UiVerrechenbarAdapter {
 	
+	private static String MANDANT_TYPE_EXTINFO_KEY = "ch.elexis.data.tarmed.mandant.type";
+	
+	public enum MandantType {
+			SPECIALIST, PRACTITIONER
+	}
+	
 	private static final String TABLENAME = "TARMED";
 	
 	public static final String FLD_CODE = "code";
 	public static final String FLD_GUELTIG_BIS = "GueltigBis";
 	public static final String FLD_GUELTIG_VON = "GueltigVon";
-	public static final String FLD_TP_TL = "TP_TL";
-	public static final String FLD_TP_AL = "TP_AL";
 	public static final String FLD_SPARTE = "Sparte";
 	public static final String FLD_DIGNI_QUANTI = "DigniQuanti";
 	public static final String FLD_DIGNI_QUALI = "DigniQuali";
@@ -63,9 +67,15 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 	public static final String FLD_LAW = "Law";
 	public static final String FLD_ISCHAPTER = "ischapter";
 	
+	public static final String EXT_FLD_TP_TL = "TP_TL";
+	public static final String EXT_FLD_TP_AL = "TP_AL";
+	public static final String EXT_FLD_F_AL_R = "F_AL_R";
 	public static final String EXT_FLD_HIERARCHY_SLAVES = "HierarchySlaves";
 	public static final String EXT_FLD_SERVICE_GROUPS = "ServiceGroups";
 	public static final String EXT_FLD_SERVICE_BLOCKS = "ServiceBlocks";
+	
+	private static final String EXT_VERRRECHNET_TL = "TL"; //$NON-NLS-1$
+	private static final String EXT_VERRRECHNET_AL = "AL"; //$NON-NLS-1$
 	
 	public static final String XIDDOMAIN = "www.xid.ch/id/tarmedsuisse";
 	
@@ -464,14 +474,122 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 		return (!StringTool.isNothing(getDigniQuali().trim()));
 	}
 	
+	/**
+	 * Get the AL value of the {@link TarmedLeistung}.
+	 * 
+	 * @return
+	 * @deprecated always use the method with {@link Mandant} parameter for correct billing
+	 */
 	public int getAL(){
 		Hashtable<String, String> map = loadExtension();
-		return (int) Math.round(checkZeroDouble(map.get(FLD_TP_AL)) * 100); //$NON-NLS-1$
+		return (int) Math.round(checkZeroDouble(map.get(EXT_FLD_TP_AL)) * 100); //$NON-NLS-1$
+	}
+	
+	/**
+	 * Get the AL value of the {@link TarmedLeistung}. The {@link Mandant} is needed to determine
+	 * special scaling factors. On billing of the {@link TarmedLeistung} the values for AL and TL
+	 * should be set to the ExtInfo of the {@link Verrechnet} for later use.
+	 * 
+	 * @param mandant
+	 * @return
+	 * @since 3.4
+	 */
+	public int getAL(Mandant mandant){
+		Hashtable<String, String> map = loadExtension();
+		double scaling = 100;
+		if (mandant != null) {
+			MandantType type = getMandantType(mandant);
+			if (type == MandantType.PRACTITIONER) {
+				double alScaling = checkZeroDouble(map.get(EXT_FLD_F_AL_R));
+				if (scaling > 0.1) {
+					scaling *= alScaling;
+				}
+			}
+		}
+		return (int) Math.round(checkZeroDouble(map.get(EXT_FLD_TP_AL)) * scaling); //$NON-NLS-1$
+	}
+	
+	/**
+	 * Get the AL points used to calculate the value of the {@link Verrechnet}. The value is set by
+	 * the {@link TarmedOptifier}. If not found, the value of {@link TarmedLeistung#getAL()} is
+	 * returned. If no information is found 0 is returned.
+	 * 
+	 * @param verrechnet
+	 * @return
+	 * @since 3.4
+	 */
+	public static int getAL(Verrechnet verrechnet){
+		String alString = verrechnet.getDetail(EXT_VERRRECHNET_AL);
+		if (alString != null) {
+			try {
+				return Integer.parseInt(alString);
+			} catch (NumberFormatException ne) {
+				// ignore, try resolve from IVerrechenbar
+			}
+		}
+		IVerrechenbar verrechenbar = verrechnet.getVerrechenbar();
+		if (verrechenbar instanceof TarmedLeistung) {
+			Konsultation kons = verrechnet.getKons();
+			return kons != null ? ((TarmedLeistung) verrechenbar).getAL(kons.getMandant())
+					: ((TarmedLeistung) verrechenbar).getAL();
+		}
+		return 0;
+	}
+	
+	/**
+	 * Get the TL points used to calculate the value of the {@link Verrechnet}. The value is set by
+	 * the {@link TarmedOptifier}. If not found, the value of {@link TarmedLeistung#getTL()} is
+	 * returned. If no information is found 0 is returned.
+	 * 
+	 * @param verrechnet
+	 * @return
+	 * @since 3.4
+	 */
+	public static int getTL(Verrechnet verrechnet){
+		String tlString = verrechnet.getDetail(EXT_VERRRECHNET_TL);
+		if (tlString != null) {
+			try {
+				return Integer.parseInt(tlString);
+			} catch (NumberFormatException ne) {
+				// ignore, try resolve from IVerrechenbar
+			}
+		}
+		IVerrechenbar verrechenbar = verrechnet.getVerrechenbar();
+		if (verrechenbar instanceof TarmedLeistung) {
+			return ((TarmedLeistung) verrechenbar).getTL();
+		}
+		return 0;
+	}
+	
+	/**
+	 * Get the {@link MandantType} of the {@link Mandant}. If not found the default value is
+	 * {@link MandantType#SPECIALIST}.
+	 * 
+	 * @param mandant
+	 * @return
+	 * @since 3.4
+	 */
+	public static MandantType getMandantType(Mandant mandant){
+		Object typeObj = mandant.getExtInfoStoredObjectByKey(MANDANT_TYPE_EXTINFO_KEY);
+		if (typeObj instanceof String) {
+			return MandantType.valueOf((String) typeObj);
+		}
+		return MandantType.SPECIALIST;
+	}
+	
+	/**
+	 * Set the {@link MandantType} of the {@link Mandant}.
+	 * 
+	 * @param mandant
+	 * @param type
+	 */
+	public static void setMandantType(Mandant mandant, MandantType type){
+		mandant.setExtInfoStoredObjectByKey(MANDANT_TYPE_EXTINFO_KEY, type.name());
 	}
 	
 	public int getTL(){
 		Hashtable<String, String> map = loadExtension();
-		return (int) Math.round(checkZeroDouble(map.get(FLD_TP_TL)) * 100); //$NON-NLS-1$
+		return (int) Math.round(checkZeroDouble(map.get(EXT_FLD_TP_TL)) * 100); //$NON-NLS-1$
 	}
 	
 	/**
@@ -523,22 +641,15 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 	}
 	
 	public int getTP(final TimeTool date, final IFall fall){
-		Hashtable<String, String> map = loadExtension();
-		String t = map.get(FLD_TP_TL); //$NON-NLS-1$
-		String a = map.get(FLD_TP_AL); //$NON-NLS-1$
-		double tl = 0.0;
-		double al = 0.0;
-		try {
-			tl = (t == null) ? 0.0 : Double.parseDouble(t);
-		} catch (NumberFormatException ex) {
-			tl = 0.0;
+		return (getTL() + getAL());
+	}
+	
+	@Override
+	public int getTP(TimeTool date, Konsultation kons){
+		if (kons != null) {
+			return (getTL() + getAL(kons.getMandant()));
 		}
-		try {
-			al = (a == null) ? 0.0 : Double.parseDouble(a);
-		} catch (NumberFormatException ex) {
-			al = 0.0;
-		}
-		return (int) Math.round((tl + al) * 100.0);
+		return (getTL() + getAL());
 	}
 	
 	public double getFactor(final TimeTool date, final IFall fall){
