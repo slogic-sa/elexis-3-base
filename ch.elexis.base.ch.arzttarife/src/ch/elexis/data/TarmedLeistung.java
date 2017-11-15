@@ -28,6 +28,8 @@ import org.slf4j.LoggerFactory;
 import ch.elexis.core.data.interfaces.IFall;
 import ch.elexis.core.data.interfaces.IOptifier;
 import ch.elexis.core.data.interfaces.IVerrechenbar;
+import ch.elexis.core.jdt.NonNull;
+import ch.elexis.core.jdt.Nullable;
 import ch.elexis.core.ui.UiDesk;
 import ch.elexis.core.ui.data.UiVerrechenbarAdapter;
 import ch.elexis.views.TarmedDetailDialog;
@@ -99,6 +101,7 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 	private static final String VERSION_130 = "1.3.0";
 	
 	public static final String ROW_VERSION = "Version";
+	public static final String CODESYSTEM_NAME = "Tarmed";
 	
 	private TarmedExtension extension;
 	
@@ -350,7 +353,7 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 	/** Name des verwendeten Codesystems holen (liefert immer "Tarmed") */
 	@Override
 	public String getCodeSystemName(){
-		return "Tarmed"; //$NON-NLS-1$
+		return CODESYSTEM_NAME;
 	}
 	
 	protected TarmedLeistung(final String id){
@@ -398,8 +401,10 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 	 * @param date
 	 * @param law
 	 * @return null if no matching {@link TarmedLeistung} found
+	 * @since 3.4
 	 */
-	public static IVerrechenbar getFromCode(final String code, TimeTool date, String law){
+	public static IVerrechenbar getFromCode(@NonNull
+	final String code, @NonNull TimeTool date, @Nullable String law){
 		Query<TarmedLeistung> query = new Query<TarmedLeistung>(TarmedLeistung.class);
 		query.add(FLD_CODE, Query.EQUALS, code);
 		if (law != null) {
