@@ -67,6 +67,10 @@ public class TarmedSelectorPanelProvider extends SelectorPanelProvider {
 			viewer.addFilter(validDateFilter);
 			ElexisEventDispatcher.getInstance().addListeners(konsFilter);
 		}
+		refreshViewer();
+	}
+	
+	private void refreshViewer() {
 		if (viewer != null && dirty) {
 			dirty = false;
 			viewer.getControl().setRedraw(false);
@@ -127,5 +131,12 @@ public class TarmedSelectorPanelProvider extends SelectorPanelProvider {
 				updateDirty(null);
 			}
 		}
+	}
+	
+	public void toggleFilters(){
+		validDateFilter.setDoFilter(!validDateFilter.getDoFilter());
+		lawFilter.setDoFilter(!lawFilter.getDoFilter());
+		dirty = true;
+		refreshViewer();
 	}
 }

@@ -67,7 +67,9 @@ public class TarmedCodeSelectorContentProvider
 				public void run(){
 					StructuredViewer viewer = commonViewer.getViewerWidget();
 					viewer.setSelection(new StructuredSelection());
+					viewer.getControl().setRedraw(false);
 					viewer.refresh();
+					viewer.getControl().setRedraw(true);
 				}
 			});
 		}
@@ -365,6 +367,7 @@ public class TarmedCodeSelectorContentProvider
 				public void run(){
 					StructuredViewer viewer = commonViewer.getViewerWidget();
 					viewer.setSelection(new StructuredSelection());
+					viewer.getControl().setRedraw(false);
 					viewer.refresh();
 					if ((queryZiffer != null && queryZiffer.length() > 4)
 						|| (queryText != null && queryText.length() > 4)) {
@@ -374,6 +377,7 @@ public class TarmedCodeSelectorContentProvider
 					} else {
 						((TreeViewer) viewer).collapseAll();
 					}
+					viewer.getControl().setRedraw(true);
 				}
 			});
 		}

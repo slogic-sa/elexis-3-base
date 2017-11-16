@@ -12,7 +12,9 @@
 
 package ch.elexis.views;
 
+import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.MenuManager;
+import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jface.viewers.StructuredSelection;
@@ -23,6 +25,7 @@ import org.eclipse.swt.widgets.Listener;
 
 import ch.elexis.core.ui.actions.ReadOnceTreeLoader;
 import ch.elexis.core.ui.actions.ToggleVerrechenbarFavoriteAction;
+import ch.elexis.core.ui.icons.Images;
 import ch.elexis.core.ui.selectors.FieldDescriptor;
 import ch.elexis.core.ui.selectors.FieldDescriptor.Typ;
 import ch.elexis.core.ui.util.viewers.CommonViewer;
@@ -82,6 +85,24 @@ public class TarmedCodeSelectorFactory extends CodeSelectorFactory {
 			fd.setAssignedListener(eventType, keyListener);
 		}
 		slp = new TarmedSelectorPanelProvider(cv, fields, true);
+		
+		slp.addActions(new Action() {
+			
+			@Override
+			public String getToolTipText(){
+				return "Kontext (Konsultation, Fall, etc.) Filter (de)aktivieren";
+			}
+			
+			@Override
+			public ImageDescriptor getImageDescriptor(){
+				return Images.IMG_FILTER.getImageDescriptor();
+			}
+			
+			@Override
+			public void run(){
+				((TarmedSelectorPanelProvider) slp).toggleFilters();
+			}
+		});
 		
 		MenuManager menu = new MenuManager();
 		menu.add(tvfa);
