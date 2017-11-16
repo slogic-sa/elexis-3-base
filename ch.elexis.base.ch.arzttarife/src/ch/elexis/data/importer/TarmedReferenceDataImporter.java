@@ -16,8 +16,6 @@ import org.eclipse.core.runtime.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.healthmarketscience.jackcess.Database;
-
 import ch.elexis.arzttarife_schweiz.Messages;
 import ch.elexis.core.constants.Preferences;
 import ch.elexis.core.data.activator.CoreHub;
@@ -42,7 +40,6 @@ public class TarmedReferenceDataImporter extends AbstractReferenceDataImporter {
 	protected JdbcLink cacheDb = null; // As we have problems parsing dates using the postgresql-JdBC,
 	protected String lang;
 	
-	private Database mdbDB;
 	private AccessWrapper aw;
 	private String mdbFilename;
 	private Set<String> cachedDbTables = null;
@@ -84,7 +81,6 @@ public class TarmedReferenceDataImporter extends AbstractReferenceDataImporter {
 		if (openAccessDatabase(input) != Status.OK_STATUS
 			|| deleteCachedAccessTables() != Status.OK_STATUS
 			|| importAllAccessTables() != Status.OK_STATUS) {
-			mdbDB = null;
 			cachedDbTables = null;
 			return Status.CANCEL_STATUS;
 		}
@@ -151,10 +147,8 @@ public class TarmedReferenceDataImporter extends AbstractReferenceDataImporter {
 			logger.error("Error importing tarmed", ex);
 		} finally {
 			if (deleteCachedAccessTables() != Status.OK_STATUS) {
-				mdbDB = null;
 				return Status.CANCEL_STATUS;
 			}
-			mdbDB = null;
 		}
 		return ret;
 	}
@@ -206,8 +200,8 @@ public class TarmedReferenceDataImporter extends AbstractReferenceDataImporter {
 		String tablename = "";
 		Iterator<String> iter;
 		try {
-			chapterCount = mdbDB.getTable("KAPITEL_TEXT").getRowCount();
-			servicesCount = mdbDB.getTable("LEISTUNG").getRowCount();
+			chapterCount = aw.getDatabase().getTable("KAPITEL_TEXT").getRowCount();
+			servicesCount = aw.getDatabase().getTable("LEISTUNG").getRowCount();
 			
 			iter = cachedDbTables.iterator();
 			while (iter.hasNext()) {
@@ -268,8 +262,7 @@ public class TarmedReferenceDataImporter extends AbstractReferenceDataImporter {
 		try {
 			aw = new AccessWrapper(file);
 			aw.setPrefixForImportedTableNames(ImportPrefix);
-			mdbDB = Database.open(file, true, Database.DEFAULT_AUTO_SYNC);
-			cachedDbTables = mdbDB.getTableNames();
+			cachedDbTables = aw.getDatabase().getTableNames();
 		} catch (IOException e) {
 			logger.error("Failed to open access file " + file, e);
 			return Status.CANCEL_STATUS;
