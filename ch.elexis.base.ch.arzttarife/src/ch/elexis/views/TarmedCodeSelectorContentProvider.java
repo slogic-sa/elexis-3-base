@@ -44,8 +44,16 @@ public class TarmedCodeSelectorContentProvider
 	public TarmedCodeSelectorContentProvider(CommonViewer commonViewer){
 		this.commonViewer = commonViewer;
 		
-		childrenQuery = new Query<>(TarmedLeistung.class);
-		leafsQuery = new Query<>(TarmedLeistung.class);
+		childrenQuery =
+			new Query<>(TarmedLeistung.class, null, null, TarmedLeistung.TABLENAME, new String[] {
+				TarmedLeistung.FLD_GUELTIG_VON, TarmedLeistung.FLD_GUELTIG_BIS,
+				TarmedLeistung.FLD_LAW
+			});
+		leafsQuery =
+			new Query<>(TarmedLeistung.class, null, null, TarmedLeistung.TABLENAME, new String[] {
+				TarmedLeistung.FLD_GUELTIG_VON, TarmedLeistung.FLD_GUELTIG_BIS,
+				TarmedLeistung.FLD_LAW
+			});
 		filteredLeafs = new HashMap<>();
 		
 		refreshExecutor = new RefreshExecutor();

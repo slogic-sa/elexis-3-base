@@ -12,6 +12,8 @@
 
 package ch.elexis.data;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -24,6 +26,7 @@ import ch.elexis.core.constants.Preferences;
 import ch.elexis.core.data.activator.CoreHub;
 import ch.elexis.core.data.interfaces.IOptifier;
 import ch.elexis.core.data.interfaces.IVerrechenbar;
+import ch.elexis.data.importer.TarmedLeistungAge;
 import ch.elexis.data.importer.TarmedLeistungLimits;
 import ch.elexis.data.importer.TarmedLeistungLimits.LimitsEinheit;
 import ch.elexis.data.importer.TarmedReferenceDataImporter;
@@ -52,6 +55,7 @@ public class TarmedOptifier implements IOptifier {
 	public static final int LEISTUNGSTYP = 6;
 	public static final int NOTYETVALID = 7;
 	public static final int NOMOREVALID = 8;
+	public static final int PATIENTAGE = 9;
 	
 	private static final String CHAPTER_XRAY = "39.02";
 	private static final String DEFAULT_TAX_XRAY_ROOM = "39.2000";
@@ -119,6 +123,14 @@ public class TarmedOptifier implements IOptifier {
 				if (date.isAfter(tBis)) {
 					return new Result<IVerrechenbar>(Result.SEVERITY.WARNING, NOMOREVALID,
 							code.getCode() + Messages.TarmedOptifier_NoMoreValid, null, false);
+				}
+			}
+			String ageLimits = ext.get(TarmedLeistung.EXT_FLD_SERVICE_AGE);
+			if (ageLimits != null && !ageLimits.isEmpty()) {
+				String errorMessage = checkAge(ageLimits, kons);
+				if (errorMessage != null) {
+					return new Result<IVerrechenbar>(Result.SEVERITY.WARNING, PATIENTAGE,
+						errorMessage, null, false);
 				}
 			}
 		}
@@ -490,6 +502,33 @@ public class TarmedOptifier implements IOptifier {
 			return new Result<IVerrechenbar>(Result.SEVERITY.OK, PREISAENDERUNG, "Preis", null, false); //$NON-NLS-1$
 		}
 		return new Result<IVerrechenbar>(null);
+	}
+	
+	private String checkAge(String limitsString, Konsultation kons){
+		LocalDateTime consDate = new TimeTool(kons.getDatum()).toLocalDateTime();
+		Patient patient = kons.getFall().getPatient();
+		long patientAgeDays = patient.getAgeAt(consDate, ChronoUnit.DAYS);
+		
+		List<TarmedLeistungAge> ageLimits = TarmedLeistungAge.of(limitsString);
+		for (TarmedLeistungAge tarmedLeistungAge : ageLimits) {
+			if (tarmedLeistungAge.isValidOn(consDate.toLocalDate())) {
+				
+				if (tarmedLeistungAge.getFromDays() >= 0) {
+					if (patientAgeDays < tarmedLeistungAge.getFromDays()) {
+						return "Patient ist zu jung, verrechenbar ab "
+							+ tarmedLeistungAge.getFromText();
+					}
+				}
+				
+				if (tarmedLeistungAge.getToDays() >= 0) {
+					if (patientAgeDays > tarmedLeistungAge.getToDays()) {
+						return "Patient ist zu alt, verrechenbar bis "
+							+ tarmedLeistungAge.getToText();
+					}
+				}
+			}
+		}
+		return null;
 	}
 	
 	private IVerrechenbar getKonsVerrechenbar(String code, Konsultation kons){

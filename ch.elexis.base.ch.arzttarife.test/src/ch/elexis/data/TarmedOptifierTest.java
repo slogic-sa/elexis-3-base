@@ -8,6 +8,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
 import org.eclipse.core.runtime.IStatus;
@@ -22,10 +24,10 @@ import ch.rgw.tools.Result;
 
 public class TarmedOptifierTest {
 	private static TarmedOptifier optifier;
-	private static Patient patGrissemann, patStermann;
-	private static Konsultation konsGriss, konsSter;
+	private static Patient patGrissemann, patStermann, patOneYear;
+	private static Konsultation konsGriss, konsSter, konsOneYear;
 	private static TarmedLeistung tlBaseFirst5Min, tlBaseXRay, tlBaseRadiologyHospital,
-			tlUltrasound, tlTapingCat1;
+			tlUltrasound, tlTapingCat1, tlAgeTo1Month, tlAgeTo7Years, tlAgeFrom7Years;
 			
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception{
@@ -39,6 +41,10 @@ public class TarmedOptifierTest {
 		tlBaseRadiologyHospital = (TarmedLeistung) TarmedLeistung.getFromCode("39.0015");
 		tlUltrasound = (TarmedLeistung) TarmedLeistung.getFromCode("39.3005");
 		tlTapingCat1 = (TarmedLeistung) TarmedLeistung.getFromCode("01.0110");
+		
+		tlAgeTo1Month = (TarmedLeistung) TarmedLeistung.getFromCode("00.0870");
+		tlAgeTo7Years = (TarmedLeistung) TarmedLeistung.getFromCode("00.0900");
+		tlAgeFrom7Years = (TarmedLeistung) TarmedLeistung.getFromCode("00.0890");
 		
 		//Patient Grissemann with case and consultation
 		patGrissemann = new Patient("Grissemann", "Christoph", "17.05.1966", Patient.MALE);
@@ -57,6 +63,18 @@ public class TarmedOptifierTest {
 		konsSter = new Konsultation(fallSter);
 		konsSter.addDiagnose(TICode.getFromCode("T1"));
 		konsSter.addLeistung(tlBaseFirst5Min);
+		
+		//Patient OneYear with case and consultation
+		String dob = LocalDate.now().minusYears(1).minusDays(1)
+			.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+		patOneYear = new Patient("One", "Year", dob, Patient.MALE);
+		Fall fallOneYear = patOneYear.neuerFall("Testfall One", Fall.getDefaultCaseReason(),
+			Fall.getDefaultCaseLaw());
+		fallSter.setInfoElement("Kostenträger", patOneYear.getId());
+		konsOneYear = new Konsultation(fallOneYear);
+		konsOneYear.addDiagnose(TICode.getFromCode("T1"));
+		konsOneYear.addLeistung(tlBaseFirst5Min);
+		
 	}
 	
 	private static void importTarmedReferenceData() throws FileNotFoundException{
@@ -166,6 +184,19 @@ public class TarmedOptifierTest {
 		assertTrue(result.isOK());
 		assertFalse(getVerrechent(konsSter, mainService).isPresent());
 		assertFalse(getVerrechent(konsSter, additionalService).isPresent());
+	}
+	
+	@Test
+	public void testOneYear(){
+		// additional without main, not allowed
+		Result<IVerrechenbar> result = optifier.add(tlAgeTo1Month, konsOneYear);
+		assertFalse(result.isOK());
+		
+		result = optifier.add(tlAgeTo7Years, konsOneYear);
+		assertTrue(result.isOK());
+		
+		result = optifier.add(tlAgeFrom7Years, konsOneYear);
+		assertFalse(result.isOK());
 	}
 	
 	private Optional<Verrechnet> getVerrechent(Konsultation kons, TarmedLeistung leistung){

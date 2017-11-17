@@ -134,6 +134,10 @@ public class ServiceImporter {
 					String blocks = getBlocks();
 					extensionMap.put(TarmedLeistung.EXT_FLD_SERVICE_BLOCKS, blocks);
 					
+					// get LEISTUNG_ALTER
+					String age = getAge();
+					extensionMap.put(TarmedLeistung.EXT_FLD_SERVICE_AGE, age);
+					
 					// get LEISTUNG_KOMBINATION
 					String[] combinations = getCombinations();
 					if (combinations[0] != null) {
@@ -359,6 +363,91 @@ public class ServiceImporter {
 			}
 		}
 		return sb.toString();
+	}
+	
+	private String getAge() throws SQLException, IOException{
+		StringBuilder sb = new StringBuilder();
+		Stm subStm = cacheDb.getStatement();
+		try {
+			ResultSet rsub =
+				subStm.query(String.format("SELECT * FROM %sLEISTUNG_ALTER WHERE LNR=%s",
+					TarmedReferenceDataImporter.ImportPrefix, JdbcLink.wrap(code))); //$NON-NLS-1$
+			List<Map<String, String>> validResults = ImporterUtil.getAllValueMaps(rsub);
+			if (!validResults.isEmpty()) {
+				for (Map<String, String> map : validResults) {
+					try {
+						StringBuilder def = new StringBuilder();
+						if (sb.length() == 0) {
+							def.append(getAgeDefinition(map));
+						} else {
+							def.append(", " + getAgeDefinition(map));
+						}
+						LocalDate from = ImporterUtil.getLocalDate(map, "GUELTIG_VON");
+						LocalDate to = LocalDate.parse(map.get("GUELTIG_BIS"),
+							DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss.S"));
+						def.append("[").append(from.toString()).append("|").append(to.toString())
+							.append("]");
+						
+						sb.append(def.toString());
+					} catch (IllegalStateException e) {
+						logger.warn("Exception on age import, continuing", e);
+					}
+				}
+			}
+			rsub.close();
+		} finally {
+			if (subStm != null) {
+				cacheDb.releaseStatement(subStm);
+			}
+		}
+		return sb.toString();
+	}
+	
+	private String getAgeDefinition(Map<String, String> map){
+		StringBuilder sb = new StringBuilder();
+		int fromAge = getAgeInt(map.get("VON_ALTER"), -1);
+		int toAge = getAgeInt(map.get("BIS_ALTER"), -1);
+		if (checkValidRange(fromAge, toAge)) {
+			sb.append(fromAge);
+			sb.append("|");
+			sb.append(getToleranceInt(map.get("VON_TOLERANZ"), 0));
+			sb.append("|");
+			sb.append(toAge);
+			sb.append("|");
+			sb.append(getToleranceInt(map.get("BIS_TOLERANZ"), 0));
+			sb.append("|");
+			sb.append(map.get("ZR_EINHEIT"));
+		} else {
+			throw new IllegalStateException("Not valid age range from " + fromAge + " to " + toAge);
+		}
+		return sb.toString();
+	}
+	
+	private boolean checkValidRange(int fromAge, int toAge){
+		// not both not set
+		return !(fromAge == -1 && toAge == -1);
+	}
+	
+	private Integer getToleranceInt(String string, int defaultValue){
+		if (string == null || string.isEmpty()) {
+			return defaultValue;
+		}
+		try {
+			return Float.valueOf(string).intValue();
+		} catch (NumberFormatException fe) {
+			throw new IllegalStateException(fe);
+		}
+	}
+	
+	private Integer getAgeInt(String string, int defaultValue){
+		if (string == null || string.isEmpty()) {
+			return defaultValue;
+		}
+		try {
+			return Float.valueOf(string).intValue();
+		} catch (NumberFormatException fe) {
+			throw new IllegalStateException(fe);
+		}
 	}
 	
 	private String getSlavesString() throws SQLException, IOException{

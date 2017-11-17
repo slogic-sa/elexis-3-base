@@ -55,7 +55,7 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 			SPECIALIST, PRACTITIONER
 	}
 	
-	private static final String TABLENAME = "TARMED";
+	public static final String TABLENAME = "TARMED";
 	
 	public static final String FLD_CODE = "code";
 	public static final String FLD_GUELTIG_BIS = "GueltigBis";
@@ -75,6 +75,7 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 	public static final String EXT_FLD_HIERARCHY_SLAVES = "HierarchySlaves";
 	public static final String EXT_FLD_SERVICE_GROUPS = "ServiceGroups";
 	public static final String EXT_FLD_SERVICE_BLOCKS = "ServiceBlocks";
+	public static final String EXT_FLD_SERVICE_AGE = "ServiceAge";
 	
 	private static final String EXT_VERRRECHNET_TL = "TL"; //$NON-NLS-1$
 	private static final String EXT_VERRRECHNET_AL = "AL"; //$NON-NLS-1$
@@ -405,8 +406,10 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 	 */
 	public static IVerrechenbar getFromCode(@NonNull
 	final String code, @NonNull TimeTool date, @Nullable String law){
-		Query<TarmedLeistung> query = new Query<TarmedLeistung>(TarmedLeistung.class);
-		query.add(FLD_CODE, Query.EQUALS, code);
+		Query<TarmedLeistung> query = new Query<TarmedLeistung>(TarmedLeistung.class, FLD_CODE, code, TarmedLeistung.TABLENAME, new String[] {
+			TarmedLeistung.FLD_GUELTIG_VON, TarmedLeistung.FLD_GUELTIG_BIS,
+				TarmedLeistung.FLD_LAW, TarmedLeistung.FLD_ISCHAPTER
+		});
 		if (law != null) {
 			query.add(FLD_LAW, Query.EQUALS, law, true);
 		}
