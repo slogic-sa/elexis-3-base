@@ -33,7 +33,7 @@ public class TarmedLawFilter extends ViewerFilter {
 		TarmedLeistung leistung = (TarmedLeistung) element;
 		
 		if (doFilter && law != null) {
-			return law.equals(leistung.get(TarmedLeistung.FLD_LAW));
+			return law.equalsIgnoreCase(leistung.get(TarmedLeistung.FLD_LAW));
 		}
 		return true;
 	}

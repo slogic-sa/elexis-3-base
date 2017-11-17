@@ -90,8 +90,11 @@ public class TarmedSelectorPanelProvider extends SelectorPanelProvider {
 		String law = "";
 		if (fall != null) {
 			String konsLaw = fall.getRequiredString("Gesetz");
-			if (laws.contains(konsLaw)) {
-				law = konsLaw;
+			for (String available : laws) {
+				if (available.equalsIgnoreCase(konsLaw)) {
+					law = available;
+					break;
+				}
 			}
 		}
 		lawFilter.setLaw(law);

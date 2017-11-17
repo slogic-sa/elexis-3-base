@@ -408,7 +408,7 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 		Query<TarmedLeistung> query = new Query<TarmedLeistung>(TarmedLeistung.class);
 		query.add(FLD_CODE, Query.EQUALS, code);
 		if (law != null) {
-			query.add(FLD_LAW, Query.EQUALS, law);
+			query.add(FLD_LAW, Query.EQUALS, law, true);
 		}
 		List<TarmedLeistung> leistungen = query.execute();
 		for (TarmedLeistung tarmedLeistung : leistungen) {
