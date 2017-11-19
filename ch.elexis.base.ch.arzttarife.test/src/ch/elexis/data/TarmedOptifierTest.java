@@ -2,6 +2,7 @@ package ch.elexis.data;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -10,6 +11,8 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.Hashtable;
 import java.util.Optional;
 
 import org.eclipse.core.runtime.IStatus;
@@ -19,8 +22,12 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import ch.elexis.core.data.interfaces.IVerrechenbar;
+import ch.elexis.core.data.util.MultiplikatorList;
+import ch.elexis.data.TarmedLeistung.MandantType;
 import ch.elexis.data.importer.TarmedReferenceDataImporter;
+import ch.rgw.tools.Money;
 import ch.rgw.tools.Result;
+import ch.rgw.tools.TimeTool;
 
 public class TarmedOptifierTest {
 	private static TarmedOptifier optifier;
@@ -197,6 +204,86 @@ public class TarmedOptifierTest {
 		
 		result = optifier.add(tlAgeFrom7Years, konsOneYear);
 		assertFalse(result.isOK());
+	}
+	
+	@Test
+	public void testDignitaet(){
+		Konsultation kons = konsGriss;
+		setUpDignitaet(kons);
+		
+		// default mandant type is specialist
+		clearKons(kons);
+		Result<IVerrechenbar> result = kons.addLeistung(tlBaseFirst5Min);
+		assertTrue(result.isOK());
+		Verrechnet verrechnet = kons.getVerrechnet(tlBaseFirst5Min);
+		assertNotNull(verrechnet);
+		int amountAL = TarmedLeistung.getAL(verrechnet);
+		assertEquals(1042, amountAL);
+		Money amount = verrechnet.getNettoPreis();
+		assertEquals(15.45, amount.getAmount(), 0.01);
+		
+		// set the mandant type to practitioner
+		clearKons(kons);
+		TarmedLeistung.setMandantType(kons.getMandant(), MandantType.PRACTITIONER);
+		result = kons.addLeistung(tlBaseFirst5Min);
+		assertTrue(result.isOK());
+		verrechnet = kons.getVerrechnet(tlBaseFirst5Min);
+		assertNotNull(verrechnet);
+		amountAL = TarmedLeistung.getAL(verrechnet);
+		assertEquals(969, amountAL);
+		amount = verrechnet.getNettoPreis();
+		assertEquals(14.84, amount.getAmount(), 0.01);
+		
+		tearDownDignitaet(kons);
+		
+		// set the mandant type to practitioner
+		clearKons(kons);
+		TarmedLeistung.setMandantType(kons.getMandant(), MandantType.SPECIALIST);
+		result = kons.addLeistung(tlBaseFirst5Min);
+		assertTrue(result.isOK());
+		verrechnet = kons.getVerrechnet(tlBaseFirst5Min);
+		assertNotNull(verrechnet);
+		amountAL = TarmedLeistung.getAL(verrechnet);
+		assertEquals(957, amountAL);
+		amount = verrechnet.getNettoPreis();
+		assertEquals(17.76, amount.getAmount(), 0.01);
+	}
+	
+	private void setUpDignitaet(Konsultation kons){
+		Hashtable<String, String> extension = tlBaseFirst5Min.loadExtension();
+		// set reduce factor
+		extension.put(TarmedLeistung.EXT_FLD_F_AL_R, "0.93");
+		// the AL value
+		extension.put(TarmedLeistung.EXT_FLD_TP_AL, "10.42");
+		// add additional multiplier
+		LocalDate yesterday = LocalDate.now().minus(1, ChronoUnit.DAYS);
+		MultiplikatorList multis =
+			new MultiplikatorList("VK_PREISE", kons.getFall().getAbrechnungsSystem());
+		multis.insertMultiplikator(new TimeTool(yesterday), "0.83");
+		
+		tlBaseFirst5Min.setExtension(extension);
+	}
+	
+	private void tearDownDignitaet(Konsultation kons){
+		Hashtable<String, String> extension = tlBaseFirst5Min.loadExtension();
+		// clear reduce factor
+		extension = tlBaseFirst5Min.loadExtension();
+		extension.remove(TarmedLeistung.EXT_FLD_F_AL_R);
+		// reset AL value
+		extension.put(TarmedLeistung.EXT_FLD_TP_AL, "9.57");
+		// remove additional multiplier
+		LocalDate yesterday = LocalDate.now().minus(1, ChronoUnit.DAYS);
+		MultiplikatorList multis =
+			new MultiplikatorList("VK_PREISE", kons.getFall().getAbrechnungsSystem());
+		multis.removeMultiplikator(new TimeTool(yesterday), "0.83");
+
+		tlBaseFirst5Min.setExtension(extension);
+	}
+	
+	private void clearKons(Konsultation kons){
+		for (Verrechnet verrechnet : kons.getLeistungen()) {
+			kons.removeLeistung(verrechnet);
+		}
 	}
 	
 	private Optional<Verrechnet> getVerrechent(Konsultation kons, TarmedLeistung leistung){
