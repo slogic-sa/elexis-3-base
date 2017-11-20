@@ -212,7 +212,8 @@ public class ServiceImporter {
 		Stm subStm = cacheDb.getStatement();
 		try {
 			try (ResultSet res = subStm
-				.query(String.format("SELECT * FROM %sLEISTUNG_KUMULATION WHERE LNR_MASTER=%s",
+				.query(String.format(
+					"SELECT * FROM %sLEISTUNG_KUMULATION WHERE LNR_MASTER=%s AND ART_MASTER='L'",
 					TarmedReferenceDataImporter.ImportPrefix, JdbcLink.wrap(code)))) {
 				TimeTool fromTime = new TimeTool();
 				TimeTool toTime = new TimeTool();
@@ -281,7 +282,8 @@ public class ServiceImporter {
 		Stm subStm = cacheDb.getStatement();
 		try {
 			ResultSet rsub =
-				subStm.query(String.format("SELECT * FROM %sLEISTUNG_MENGEN_ZEIT WHERE LNR=%s",
+				subStm.query(
+					String.format("SELECT * FROM %sLEISTUNG_MENGEN_ZEIT WHERE LNR=%s AND ART='L'",
 					TarmedReferenceDataImporter.ImportPrefix, JdbcLink.wrap(code))); //$NON-NLS-1$
 			List<Map<String, String>> validResults =
 				ImporterUtil.getValidValueMaps(rsub, validFrom);
@@ -539,7 +541,7 @@ public class ServiceImporter {
 	}
 	
 	private String getId(ResultSet res) throws SQLException{
-		return res.getString("LNR") + "-" + validFrom.toString(TimeTool.DATE_COMPACT) //$NON-NLS-1$
+		return res.getString("LNR") + "-" + validFrom.toString(TimeTool.DATE_COMPACT)
 			+ getLawIdExtension();
 	}
 	

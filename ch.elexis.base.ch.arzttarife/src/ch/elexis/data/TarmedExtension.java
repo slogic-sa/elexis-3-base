@@ -97,6 +97,14 @@ public class TarmedExtension extends PersistentObject {
 		});
 	}
 	
+	public TarmedExtension(TarmedGroup tarmedGruppe){
+		create(null, new String[] {
+			FLD_CODE
+		}, new String[] {
+			tarmedGruppe.getId()
+		});
+	}
+	
 	public static TarmedExtension load(String id){
 		return new TarmedExtension(id);
 	}
@@ -108,6 +116,16 @@ public class TarmedExtension extends PersistentObject {
 	public static TarmedExtension getExtension(TarmedLeistung tarmedLeistung){
 		Query<TarmedExtension> query = new Query<>(TarmedExtension.class);
 		query.add(FLD_CODE, Query.EQUALS, tarmedLeistung.getId());
+		List<TarmedExtension> result = query.execute();
+		if (!result.isEmpty()) {
+			return result.get(0);
+		}
+		return null;
+	}
+	
+	public static TarmedExtension getExtension(TarmedGroup tarmedGroup){
+		Query<TarmedExtension> query = new Query<>(TarmedExtension.class);
+		query.add(FLD_CODE, Query.EQUALS, tarmedGroup.getId());
 		List<TarmedExtension> result = query.execute();
 		if (!result.isEmpty()) {
 			return result.get(0);

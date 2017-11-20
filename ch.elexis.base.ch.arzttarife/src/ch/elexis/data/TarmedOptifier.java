@@ -106,7 +106,7 @@ public class TarmedOptifier implements IOptifier {
 
 		Hashtable<String, String> ext = tc.loadExtension();
 
-		// Gültigkeit gemäss Datum prüfen
+		// Gültigkeit gemäss Datum und Alter prüfen
 		if (bOptify) {
 			TimeTool date = new TimeTool(kons.getDatum());
 			String dVon = ((TarmedLeistung) code).get("GueltigVon"); //$NON-NLS-1$
@@ -224,7 +224,7 @@ public class TarmedOptifier implements IOptifier {
 						}
 					}
 				}
-
+				
 				if (newVerrechnet.getCode().equals("00.0750") || newVerrechnet.getCode().equals("00.0010")) {
 					String excludeCode = null;
 					if (newVerrechnet.getCode().equals("00.0010")) {
@@ -793,18 +793,13 @@ public class TarmedOptifier implements IOptifier {
 	 * @return true OK if they are compatible, WARNING if it matches an exclusion case
 	 */
 	public Result<IVerrechenbar> isCompatible(TarmedLeistung tarmedCode, TarmedLeistung tarmed){
-		String notCompatible = tarmed.getExclusion();
+		List<TarmedExclusion> exclusions = tarmed.getExclusions();
 		
-		// there are some exclusions to consider
-		if (!StringTool.isNothing(notCompatible)) {
-			String code = tarmedCode.getCode();
-			String codeParent = tarmedCode.getParent();
-			for (String nc : notCompatible.split(",")) {
-				if (code.equals(nc) || codeParent.startsWith(nc)) {
-					return new Result<IVerrechenbar>(Result.SEVERITY.WARNING, EXKLUSION,
-						tarmed.getCode() + " nicht kombinierbar mit " + code, //$NON-NLS-1$
-						null, false);
-				}
+		for (TarmedExclusion tarmedExclusion : exclusions) {
+			if (tarmedExclusion.isMatching(tarmedCode)) {
+				return new Result<IVerrechenbar>(Result.SEVERITY.WARNING, EXKLUSION,
+					tarmed.getCode() + " nicht kombinierbar mit " + tarmedExclusion.toString(), //$NON-NLS-1$
+					null, false);
 			}
 		}
 		return new Result<IVerrechenbar>(Result.SEVERITY.OK, OK, "compatible", null, false);

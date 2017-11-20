@@ -13,12 +13,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Status;
 import org.junit.Test;
 
+import ch.elexis.data.TarmedGroup;
 import ch.elexis.data.TarmedLeistung;
 import ch.rgw.tools.JdbcLink;
 import ch.rgw.tools.TimeTool;
@@ -41,6 +43,9 @@ public class TarmedReferenceDataImporterTest {
 	private String codeGroup = "33";
 	private String codeInGroup = "39.0370";
 	private String codeNotInGroup = "39.3005";
+	
+	private String codeLimitGroup = "31";
+	private String codeLimitInGroup = "02.0310";
 	
 	private String codeBlock = "04";
 	private String codeInBlock = "15.0720";
@@ -137,6 +142,16 @@ public class TarmedReferenceDataImporterTest {
 		TarmedLeistung notInGroup = (TarmedLeistung) TarmedLeistung.getFromCode(codeNotInGroup);
 		groups = notInGroup.getServiceGroups(now);
 		assertFalse(groups.contains(codeGroup));
+		
+		// group limits
+		TarmedLeistung limitInGroup = (TarmedLeistung) TarmedLeistung.getFromCode(codeLimitInGroup);
+		groups = limitInGroup.getServiceGroups(now);
+		assertTrue(groups.contains("31"));
+		Optional<TarmedGroup> tarmedGroup =
+			TarmedGroup.find("31", inGroup.get(TarmedLeistung.FLD_LAW), inGroup.getGueltigVon());
+		assertTrue(tarmedGroup.isPresent());
+		String limits = tarmedGroup.get().loadExtension().get("limits");
+		assertTrue(limits != null && !limits.isEmpty());
 		
 		// blocks
 		TarmedLeistung inBlock = (TarmedLeistung) TarmedLeistung.getFromCode(codeInBlock);

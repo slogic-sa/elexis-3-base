@@ -32,6 +32,7 @@ import ch.elexis.core.jdt.NonNull;
 import ch.elexis.core.jdt.Nullable;
 import ch.elexis.core.ui.UiDesk;
 import ch.elexis.core.ui.data.UiVerrechenbarAdapter;
+import ch.elexis.data.TarmedExclusion.TarmedExclusionType;
 import ch.elexis.views.TarmedDetailDialog;
 import ch.rgw.tools.IFilter;
 import ch.rgw.tools.JdbcLink;
@@ -630,6 +631,17 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 	}
 	
 	/**
+	 * Get the exclusions valid now as String, containing the service and chapter codes. Group
+	 * exclusions are NOT part of the String.
+	 * 
+	 * @return
+	 */
+	public List<TarmedExclusion> getExclusions(){
+		curTimeHelper.setTime(new Date());
+		return getExclusions(curTimeHelper);
+	}
+	
+	/**
 	 * Get the exclusions valid at the paramater date as String, containing the service and chapter
 	 * codes. Group exclusions are NOT part of the String.
 	 * 
@@ -646,6 +658,18 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 			return checkNull(map.get("exclusion"));
 		}
 		return checkNull(exclusions);
+	}
+	
+	/**
+	 * Get {@link TarmedExclusion} objects with this {@link TarmedLeistung} as master.
+	 * 
+	 * @param date
+	 * @return
+	 */
+	public List<TarmedExclusion> getExclusions(TimeTool date){
+		return TarmedKumulation.getExclusions(getCode(),
+			isChapter() ? TarmedExclusionType.CHAPTER : TarmedExclusionType.SERVICE, date,
+			get(TarmedLeistung.FLD_LAW));
 	}
 	
 	public int getTP(final TimeTool date, final IFall fall){

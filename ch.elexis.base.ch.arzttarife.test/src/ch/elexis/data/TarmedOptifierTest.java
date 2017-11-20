@@ -127,7 +127,7 @@ public class TarmedOptifierTest {
 		if (!resCompatible.getMessages().isEmpty()) {
 			resText = resCompatible.getMessages().get(0).getText();
 		}
-		assertEquals("39.3005 nicht kombinierbar mit 39.0020", resText);
+		assertEquals("39.3005 nicht kombinierbar mit Kapitel 39.01", resText);
 		resCompatible = optifier.isCompatible(tlUltrasound, tlBaseXRay);
 		assertTrue(resCompatible.isOK());
 		
@@ -136,7 +136,7 @@ public class TarmedOptifierTest {
 		if (!resCompatible.getMessages().isEmpty()) {
 			resText = resCompatible.getMessages().get(0).getText();
 		}
-		assertEquals("39.0015 nicht kombinierbar mit 39.0020", resText);
+		assertEquals("39.0015 nicht kombinierbar mit Leistung 39.0020", resText);
 		
 		resCompatible = optifier.isCompatible(tlBaseRadiologyHospital, tlUltrasound);
 		assertFalse(resCompatible.isOK());
