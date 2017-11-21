@@ -27,7 +27,7 @@ public class TarmedLimitation {
 	private LimitationUnit limitationUnit;
 	private int limitationAmount;
 	
-	private boolean groupLimitation;
+	private int electronicBilling;
 	
 	private TarmedGroup group;
 	
@@ -110,7 +110,7 @@ public class TarmedLimitation {
 		TarmedLimitation ret = new TarmedLimitation();
 		
 		String[] parts = limitation.split(","); //$NON-NLS-1$
-		if (parts.length == 5) {
+		if (parts.length == 6) {
 			if (parts[0] != null && !parts[0].isEmpty()) {
 				ret.operator = parts[0].trim();
 			}
@@ -125,6 +125,9 @@ public class TarmedLimitation {
 			}
 			if (parts[4] != null && !parts[4].isEmpty()) {
 				ret.limitationUnit = LimitationUnit.from(Float.valueOf(parts[4].trim()).intValue());
+			}
+			if (parts[5] != null && !parts[5].isEmpty()) {
+				ret.electronicBilling = Float.valueOf(parts[5].trim()).intValue();
 			}
 		}
 		return ret;
@@ -221,6 +224,9 @@ public class TarmedLimitation {
 	
 	private Result<IVerrechenbar> testCoverage(Konsultation kons, Verrechnet verrechnet){
 		Result<IVerrechenbar> ret = new Result<IVerrechenbar>(null);
+		if (shouldSkipTest()) {
+			return ret;
+		}
 		if (operator.equals("<=")) {
 			if (group == null) {
 				List<Verrechnet> verrechnetByCoverage = getVerrechnetByCoverageAndCode(kons,
@@ -248,6 +254,9 @@ public class TarmedLimitation {
 	
 	private Result<IVerrechenbar> testDuration(Konsultation kons, Verrechnet verrechnet){
 		Result<IVerrechenbar> ret = new Result<IVerrechenbar>(null);
+		if (shouldSkipTest()) {
+			return ret;
+		}
 		if (operator.equals("<=")) {
 			if (group == null) {
 				List<Verrechnet> verrechnetByMandant = getVerrechnetByMandantAndCodeDuring(kons,
@@ -285,40 +294,6 @@ public class TarmedLimitation {
 		int ret = 0;
 		for (Verrechnet verrechnet : verrechnete) {
 			ret += verrechnet.getZahl();
-		}
-		return ret;
-	}
-	
-	// @formatter:off
-	private static final String VERRECHNET_BYMANDANT_DURING = "SELECT leistungen.ID FROM leistungen, behandlungen"
-	+ " WHERE leistungen.deleted = '0'" 
-	+ " AND leistungen.deleted = behandlungen.deleted"
-	+ " AND leistungen.BEHANDLUNG = behandlungen.ID"
-	+ " AND leistungen.KLASSE = 'ch.elexis.data.TarmedLeistung'"
-	+ " AND  behandlungen.Datum >= ?"
-	+ " AND behandlungen.MandantID = ?";
-	// @formatter:on
-	
-	private List<Verrechnet> getVerrechnetByMandantDuring(Konsultation kons){
-		LocalDate fromDate = getDuringStartDate(kons);
-		Mandant mandant = kons.getMandant();
-		List<Verrechnet> ret = new ArrayList<>();
-		if (fromDate != null && mandant != null) {
-			PreparedStatement pstm = PersistentObject.getDefaultConnection()
-				.getPreparedStatement(VERRECHNET_BYMANDANT_DURING);
-			try {
-				pstm.setString(1, fromDate.format(DateTimeFormatter.ofPattern("yyyyMMdd")));
-				pstm.setString(2, mandant.getId());
-				ResultSet resultSet = pstm.executeQuery();
-				while (resultSet.next()) {
-					ret.add(Verrechnet.load(resultSet.getString(1)));
-				}
-				resultSet.close();
-			} catch (SQLException e) {
-				LoggerFactory.getLogger(getClass()).error("Error during lookup", e);
-			} finally {
-				PersistentObject.getDefaultConnection().releasePreparedStatement(pstm);
-			}
 		}
 		return ret;
 	}
@@ -405,6 +380,9 @@ public class TarmedLimitation {
 	
 	private Result<IVerrechenbar> testDay(Konsultation kons, Verrechnet verrechnet){
 		Result<IVerrechenbar> ret = new Result<IVerrechenbar>(null);
+		if (shouldSkipTest()) {
+			return ret;
+		}
 		if (limitationAmount == 1 && operator.equals("<=")) {
 			if (verrechnet.getZahl() > amount) {
 				verrechnet.setZahl(amount);
@@ -417,14 +395,8 @@ public class TarmedLimitation {
 	
 	private Result<IVerrechenbar> testSideOrSession(Konsultation kons, Verrechnet verrechnet){
 		Result<IVerrechenbar> ret = new Result<IVerrechenbar>(null);
-		TarmedLeistung tarmedLeistung = (TarmedLeistung) verrechnet.getVerrechenbar();
-		String law = tarmedLeistung.get(TarmedLeistung.FLD_LAW);
-		// skip test if no law and bill electronically
-		if (verrechnet.getCode().equals("00.0020") && (law == null || law.isEmpty())) {
-			if (CoreHub.mandantCfg != null
-				&& CoreHub.mandantCfg.get(PreferenceConstants.BILL_ELECTRONICALLY, false)) {
-				return ret;
-			}
+		if (shouldSkipTest()) {
+			return ret;
 		}
 		if (limitationAmount == 1 && operator.equals("<=")) {
 			if (verrechnet.getZahl() > amount) {
@@ -439,5 +411,19 @@ public class TarmedLimitation {
 			}
 		}
 		return ret;
+	}
+	
+	private boolean shouldSkipTest(){
+		return shouldSkipElectronicBilling();
+	}
+	
+	private boolean shouldSkipElectronicBilling(){
+		if (electronicBilling > 0) {
+			if (CoreHub.mandantCfg != null
+				&& CoreHub.mandantCfg.get(PreferenceConstants.BILL_ELECTRONICALLY, false)) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

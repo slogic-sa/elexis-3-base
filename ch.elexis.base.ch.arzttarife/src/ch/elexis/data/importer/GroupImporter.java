@@ -160,7 +160,8 @@ public class GroupImporter {
 						sb.append(map.get("MENGE")).append(","); //$NON-NLS-1$ //$NON-NLS-2$
 						sb.append(map.get("ZR_ANZAHL")).append(","); //$NON-NLS-1$ //$NON-NLS-2$
 						sb.append(map.get("PRO_NACH")).append(","); //$NON-NLS-1$ //$NON-NLS-2$
-						sb.append(map.get("ZR_EINHEIT")).append("#"); //$NON-NLS-1$ //$NON-NLS-2$
+						sb.append(map.get("ZR_EINHEIT")).append(","); //$NON-NLS-1$ //$NON-NLS-2$
+						sb.append(map.get("REGEL_EL_ABR")).append("#"); //$NON-NLS-1$ //$NON-NLS-2$
 					}
 				}
 				rsub.close();
