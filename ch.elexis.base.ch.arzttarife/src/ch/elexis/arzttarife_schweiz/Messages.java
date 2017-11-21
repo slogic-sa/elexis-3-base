@@ -120,6 +120,7 @@ public class Messages extends NLS {
 	public static String TarmedOptifier_perWeeks;
 	public static String TarmedOptifier_perMonth;
 	public static String TarmedOptifier_perYears;
+	public static String TarmedOptifier_perCoverage;
 	public static String TarmedImporter_deleteOldData;
 	public static String TarmedImporter_definitions;
 	public static String TarmedImporter_chapter;

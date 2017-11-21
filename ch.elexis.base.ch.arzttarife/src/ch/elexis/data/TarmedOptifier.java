@@ -487,18 +487,32 @@ public class TarmedOptifier implements IOptifier {
 		List<TarmedLeistungAge> ageLimits = TarmedLeistungAge.of(limitsString);
 		for (TarmedLeistungAge tarmedLeistungAge : ageLimits) {
 			if (tarmedLeistungAge.isValidOn(consDate.toLocalDate())) {
-				
-				if (tarmedLeistungAge.getFromDays() >= 0) {
+				// if only one of the limits is set, check only that limit
+				if (tarmedLeistungAge.getFromDays() >= 0 && !(tarmedLeistungAge.getToDays() >= 0)) {
 					if (patientAgeDays < tarmedLeistungAge.getFromDays()) {
 						return "Patient ist zu jung, verrechenbar ab "
 							+ tarmedLeistungAge.getFromText();
 					}
-				}
-				
-				if (tarmedLeistungAge.getToDays() >= 0) {
+				} else if (tarmedLeistungAge.getToDays() >= 0
+					&& !(tarmedLeistungAge.getFromDays() >= 0)) {
 					if (patientAgeDays > tarmedLeistungAge.getToDays()) {
 						return "Patient ist zu alt, verrechenbar bis "
 							+ tarmedLeistungAge.getToText();
+					}
+				} else if (tarmedLeistungAge.getToDays() >= 0
+					&& tarmedLeistungAge.getFromDays() >= 0) {
+					if (tarmedLeistungAge.getToDays() < tarmedLeistungAge.getFromDays()) {
+						if (patientAgeDays > tarmedLeistungAge.getToDays()
+							&& patientAgeDays < tarmedLeistungAge.getFromDays()) {
+							return "Patienten Alter nicht ok, verrechenbar "
+								+ tarmedLeistungAge.getText();
+						}
+					} else {
+						if (patientAgeDays > tarmedLeistungAge.getToDays()
+							|| patientAgeDays < tarmedLeistungAge.getFromDays()) {
+							return "Patienten Alter nicht ok, verrechenbar "
+								+ tarmedLeistungAge.getText();
+						}
 					}
 				}
 			}

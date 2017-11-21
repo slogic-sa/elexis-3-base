@@ -141,4 +141,8 @@ public class TarmedLeistungAge {
 	public String getToText(){
 		return toText;
 	}
+	
+	public String getText(){
+		return "ab " + getFromText() + " bis " + getToText();
+	}
 }

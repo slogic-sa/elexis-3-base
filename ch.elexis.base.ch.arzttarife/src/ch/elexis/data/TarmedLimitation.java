@@ -189,6 +189,9 @@ public class TarmedLimitation {
 					+ String.format(ch.elexis.arzttarife_schweiz.Messages.TarmedOptifier_perYears,
 						limitationAmount));
 			}
+		} else if (limitationUnit == LimitationUnit.COVERAGE) {
+			sb.append(ch.elexis.arzttarife_schweiz.Messages.TarmedOptifier_codemax + amount
+				+ ch.elexis.arzttarife_schweiz.Messages.TarmedOptifier_perCoverage);
 		} else {
 			sb.append("amount " + amount + "x unit " + limitationAmount + "x" + limitationUnit);
 		}
@@ -197,7 +200,9 @@ public class TarmedLimitation {
 	
 	public boolean isTestable(){
 		return limitationUnit == LimitationUnit.SIDE || limitationUnit == LimitationUnit.SESSION
-			|| limitationUnit == LimitationUnit.DAY || limitationUnit == LimitationUnit.WEEK;
+			|| limitationUnit == LimitationUnit.DAY || limitationUnit == LimitationUnit.WEEK
+			|| limitationUnit == LimitationUnit.MONTH || limitationUnit == LimitationUnit.YEAR
+			|| limitationUnit == LimitationUnit.COVERAGE;
 	}
 	
 	public Result<IVerrechenbar> test(Konsultation kons, Verrechnet verrechnet){
@@ -205,12 +210,40 @@ public class TarmedLimitation {
 			return testSideOrSession(kons, verrechnet);
 		} else if (limitationUnit == LimitationUnit.DAY) {
 			return testDay(kons, verrechnet);
-		} else if (limitationUnit == LimitationUnit.WEEK) {
+		} else if (limitationUnit == LimitationUnit.WEEK || limitationUnit == LimitationUnit.MONTH
+			|| limitationUnit == LimitationUnit.YEAR) {
 			return testDuration(kons, verrechnet);
-		} else if (limitationUnit == LimitationUnit.MONTH) {
-			return testDuration(kons, verrechnet);
+		} else if (limitationUnit == LimitationUnit.COVERAGE) {
+			return testCoverage(kons, verrechnet);
 		}
 		return new Result<IVerrechenbar>(null);
+	}
+	
+	private Result<IVerrechenbar> testCoverage(Konsultation kons, Verrechnet verrechnet){
+		Result<IVerrechenbar> ret = new Result<IVerrechenbar>(null);
+		if (operator.equals("<=")) {
+			if (group == null) {
+				List<Verrechnet> verrechnetByCoverage = getVerrechnetByCoverageAndCode(kons,
+					verrechnet.getVerrechenbar().getCode());
+				if (getVerrechnetCount(verrechnetByCoverage) > amount) {
+					reduceAmountOrDelete(verrechnet);
+					ret = new Result<IVerrechenbar>(Result.SEVERITY.WARNING,
+						TarmedOptifier.KUMULATION, toString(), null, false);
+				}
+			} else {
+				List<Verrechnet> allVerrechnetOfGroup = new ArrayList<>();
+				List<String> serviceCodes = group.getServices();
+				for (String code : serviceCodes) {
+					allVerrechnetOfGroup.addAll(getVerrechnetByCoverageAndCode(kons, code));
+				}
+				if (getVerrechnetCount(allVerrechnetOfGroup) > amount) {
+					reduceAmountOrDelete(verrechnet);
+					ret = new Result<IVerrechenbar>(Result.SEVERITY.WARNING,
+						TarmedOptifier.KUMULATION, toString(), null, false);
+				}
+			}
+		}
+		return ret;
 	}
 	
 	private Result<IVerrechenbar> testDuration(Konsultation kons, Verrechnet verrechnet){
@@ -312,6 +345,38 @@ public class TarmedLimitation {
 				pstm.setString(1, code + "%");
 				pstm.setString(2, fromDate.format(DateTimeFormatter.ofPattern("yyyyMMdd")));
 				pstm.setString(3, mandant.getId());
+				ResultSet resultSet = pstm.executeQuery();
+				while (resultSet.next()) {
+					ret.add(Verrechnet.load(resultSet.getString(1)));
+				}
+				resultSet.close();
+			} catch (SQLException e) {
+				LoggerFactory.getLogger(getClass()).error("Error during lookup", e);
+			} finally {
+				PersistentObject.getDefaultConnection().releasePreparedStatement(pstm);
+			}
+		}
+		return ret;
+	}
+	
+	// @formatter:off
+	private static final String VERRECHNET_BYCOVERAGE_ANDCODE = "SELECT leistungen.ID FROM leistungen, behandlungen"
+	+ " WHERE leistungen.deleted = '0'" 
+	+ " AND leistungen.deleted = behandlungen.deleted"
+	+ " AND leistungen.BEHANDLUNG = behandlungen.ID"
+	+ " AND leistungen.KLASSE = 'ch.elexis.data.TarmedLeistung'"
+	+ " AND leistungen.LEISTG_CODE like ?"
+	+ " AND behandlungen.FallID = ?";
+	// @formatter:on
+	
+	private List<Verrechnet> getVerrechnetByCoverageAndCode(Konsultation kons, String code){
+		List<Verrechnet> ret = new ArrayList<>();
+		if (kons != null && kons.getFall() != null) {
+			PreparedStatement pstm = PersistentObject.getDefaultConnection()
+				.getPreparedStatement(VERRECHNET_BYCOVERAGE_ANDCODE);
+			try {
+				pstm.setString(1, code + "%");
+				pstm.setString(2, kons.getFall().getId());
 				ResultSet resultSet = pstm.executeQuery();
 				while (resultSet.next()) {
 					ret.add(Verrechnet.load(resultSet.getString(1)));
