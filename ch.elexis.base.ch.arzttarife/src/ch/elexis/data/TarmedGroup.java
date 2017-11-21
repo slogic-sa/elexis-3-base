@@ -1,13 +1,16 @@
 package ch.elexis.data;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import ch.elexis.data.TarmedExclusion.TarmedExclusionType;
 import ch.rgw.tools.JdbcLink;
 import ch.rgw.tools.TimeTool;
 import ch.rgw.tools.VersionInfo;
@@ -22,11 +25,12 @@ public class TarmedGroup extends PersistentObject {
 	private static final String FLD_VALIDFROM = "ValidFrom";
 	private static final String FLD_VALIDTO = "ValidTo";
 	
-	private static final String ROW_VERSION = "Version";
+	public static final String ROW_VERSION = "Version";
 	private static final String VERSION = "1.0.0";
 	
-	private static final Object SERVICES_SEPARATOR = "|";
+	public static final Object SERVICES_SEPARATOR = "|";
 	
+	public static TimeTool curTimeHelper = new TimeTool();
 	private TarmedExtension extension;
 	
 	// @formatter:off
@@ -91,13 +95,21 @@ public class TarmedGroup extends PersistentObject {
 		super(id);
 	}
 	
+	/**
+	 * Used to create a new {@link TarmedGroup} from a TransientTarmedGroup by the GroupImporter.
+	 * 
+	 * @param id
+	 * @param groupname
+	 * @param law
+	 * @param validFrom
+	 * @param validTo
+	 */
 	public TarmedGroup(final String id, String groupname, String law,
-		TimeTool validFrom, TimeTool validTo){
+		String validFrom, String validTo, String services){
 		create(id, new String[] {
-			FLD_GROUPNAME, FLD_LAW, FLD_VALIDFROM, FLD_VALIDTO
+			FLD_GROUPNAME, FLD_LAW, FLD_VALIDFROM, FLD_VALIDTO, FLD_SERVICES
 		}, new String[] {
-			groupname, law, validFrom.toString(TimeTool.DATE_COMPACT),
-			validTo.toString(TimeTool.DATE_COMPACT)
+			groupname, law, validFrom, validTo, services
 		});
 		extension = new TarmedExtension(this);
 	}
@@ -161,5 +173,46 @@ public class TarmedGroup extends PersistentObject {
 	
 	public String getCode(){
 		return get(TarmedGroup.FLD_GROUPNAME);
+	}
+	
+	/**
+	 * Get the exclusions valid now as String, containing the service and chapter codes. Group
+	 * exclusions are NOT part of the String.
+	 * 
+	 * @param kons
+	 * 
+	 * @return
+	 */
+	public List<TarmedExclusion> getExclusions(Konsultation kons){
+		if (kons == null) {
+			curTimeHelper.setTime(new Date());
+		} else {
+			curTimeHelper.set(kons.getDatum());
+		}
+		return getExclusions(curTimeHelper);
+	}
+	
+	/**
+	 * Get {@link TarmedExclusion} objects with this {@link TarmedLeistung} as master.
+	 * 
+	 * @param date
+	 * @return
+	 */
+	public List<TarmedExclusion> getExclusions(TimeTool date){
+		return TarmedKumulation.getExclusions(getCode(), TarmedExclusionType.GROUP, date,
+			get(TarmedLeistung.FLD_LAW));
+	}
+	
+	public List<TarmedLimitation> getLimitations(){
+		String lim = (String) loadExtension().get("limits"); //$NON-NLS-1$
+		if (lim != null && !lim.isEmpty()) {
+			List<TarmedLimitation> ret = new ArrayList<>();
+			String[] lines = lim.split("#"); //$NON-NLS-1$
+			for (String line : lines) {
+				ret.add(TarmedLimitation.of(line, this));
+			}
+			return ret;
+		}
+		return Collections.emptyList();
 	}
 }

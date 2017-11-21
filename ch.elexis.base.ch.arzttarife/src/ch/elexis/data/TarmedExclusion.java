@@ -1,5 +1,9 @@
 package ch.elexis.data;
 
+import java.util.List;
+
+import ch.rgw.tools.TimeTool;
+
 public class TarmedExclusion {
 	
 	public enum TarmedExclusionType {
@@ -46,11 +50,14 @@ public class TarmedExclusion {
 		slaveType = TarmedExclusionType.ofArt(kumulation.getSlaveArt());
 	}
 	
-	public boolean isMatching(TarmedLeistung tarmedLeistung){
+	public boolean isMatching(TarmedLeistung tarmedLeistung, TimeTool date){
 		if (slaveType == TarmedExclusionType.CHAPTER) {
 			return isMatchingChapter(tarmedLeistung);
 		} else if (slaveType == TarmedExclusionType.SERVICE) {
 			return slaveCode.equals(tarmedLeistung.getCode());
+		} else if (slaveType == TarmedExclusionType.GROUP) {
+			List<String> groups = tarmedLeistung.getServiceGroups(date);
+			return groups.contains(slaveCode);
 		}
 		return false;
 	}

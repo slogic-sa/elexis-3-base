@@ -20,6 +20,7 @@ import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import ch.elexis.arzttarife_schweiz.Messages;
 import ch.elexis.core.constants.Preferences;
@@ -30,7 +31,6 @@ import ch.elexis.data.importer.TarmedLeistungAge;
 import ch.elexis.data.importer.TarmedLeistungLimits;
 import ch.elexis.data.importer.TarmedLeistungLimits.LimitsEinheit;
 import ch.elexis.data.importer.TarmedReferenceDataImporter;
-import ch.elexis.tarmedprefs.PreferenceConstants;
 import ch.elexis.tarmedprefs.RechnungsPrefs;
 import ch.rgw.tools.Result;
 import ch.rgw.tools.StringTool;
@@ -210,11 +210,12 @@ public class TarmedOptifier implements IOptifier {
 						if (tarmed != null && tarmed.exists()) {
 							// check if new has an exclusion for this verrechnet
 							// tarmed
-							Result<IVerrechenbar> resCompatible = isCompatible(tarmed, newTarmed);
+							Result<IVerrechenbar> resCompatible =
+								isCompatible(tarmed, newTarmed, kons);
 							if (resCompatible.isOK()) {
 								// check if existing tarmed has exclusion for
 								// new one
-								resCompatible = isCompatible(newTarmed, tarmed);
+								resCompatible = isCompatible(newTarmed, tarmed, kons);
 							}
 
 							if (!resCompatible.isOK()) {
@@ -287,58 +288,32 @@ public class TarmedOptifier implements IOptifier {
 			}
 		}
 
-		// Prüfen, ob zu oft verrechnet - diese Version prüft nur "pro
-		// Sitzung" und "pro Tag".
 		if (bOptify) {
-			String lim = (String) ext.get("limits"); //$NON-NLS-1$
-			if (lim != null) {
-				String[] lin = lim.split("#"); //$NON-NLS-1$
-				for (String line : lin) {
-					String[] f = line.split(","); //$NON-NLS-1$
-					if (f.length == 5) {
-						Integer limitCode = Integer.parseInt(f[4].trim());
-						switch (limitCode) {
-						case 10: // Pro Seite
-						case 7: // Pro Sitzung
-							if (newVerrechnet.getCode().equals("00.0020")) {
-								if (CoreHub.mandantCfg != null
-										&& CoreHub.mandantCfg.get(PreferenceConstants.BILL_ELECTRONICALLY, false)) {
-									break;
-								}
+			// service limitations
+			List<TarmedLimitation> limitations = tc.getLimitations();
+			for (TarmedLimitation tarmedLimitation : limitations) {
+				if (tarmedLimitation.isTestable()) {
+					Result<IVerrechenbar> result = tarmedLimitation.test(kons, newVerrechnet);
+					if (!result.isOK()) {
+						return result;
+					}
+				}
+			}
+			// group limitations
+			TimeTool date = new TimeTool(kons.getDatum());
+			List<String> groups = tc.getServiceGroups(date);
+			for (String groupName : groups) {
+				Optional<TarmedGroup> group =
+					TarmedGroup.find(groupName, tc.get(TarmedLeistung.FLD_LAW), date);
+				if (group.isPresent()) {
+					limitations = group.get().getLimitations();
+					for (TarmedLimitation tarmedLimitation : limitations) {
+						if (tarmedLimitation.isTestable()) {
+							Result<IVerrechenbar> result =
+								tarmedLimitation.test(kons, newVerrechnet);
+							if (!result.isOK()) {
+								return result;
 							}
-							// todo check if electronic billing
-							if (f[2].equals("1") && f[0].equals("<=")) {
-								int menge = Math.round(Float.parseFloat(f[1]));
-								if (newVerrechnet.getZahl() > menge) {
-									newVerrechnet.setZahl(menge);
-									if (limitCode == 7) {
-									return new Result<IVerrechenbar>(Result.SEVERITY.WARNING, KUMULATION,
-											Messages.TarmedOptifier_codemax + menge
-													+ Messages.TarmedOptifier_perSession,
-											null, false);
-									} else if (limitCode == 10) {
-										return new Result<IVerrechenbar>(Result.SEVERITY.WARNING,
-											KUMULATION, Messages.TarmedOptifier_codemax + menge
-												+ Messages.TarmedOptifier_perSide,
-											null, false);
-									}
-								}
-							}
-							break;
-						case 21: // Pro Tag
-							if (f[2].equals("1") && f[0].equals("<=")) { // 1
-																			// Tag
-								int menge = Math.round(Float.parseFloat(f[1]));
-								if (newVerrechnet.getZahl() > menge) {
-									newVerrechnet.setZahl(menge);
-									return new Result<IVerrechenbar>(Result.SEVERITY.WARNING, KUMULATION,
-											Messages.TarmedOptifier_codemax + menge + "Mal pro Tag", null, false); //$NON-NLS-1$ //$NON-NLS-2$
-								}
-							}
-
-							break;
-						default:
-							break;
 						}
 					}
 				}
@@ -790,16 +765,35 @@ public class TarmedOptifier implements IOptifier {
 	 *            the tarmed and it's parents code are check whether they have to be excluded
 	 * @param tarmed
 	 *            TarmedLeistung who incompatibilities are examined
+	 * @param kons
+	 *            {@link Konsultation} providing context
 	 * @return true OK if they are compatible, WARNING if it matches an exclusion case
 	 */
-	public Result<IVerrechenbar> isCompatible(TarmedLeistung tarmedCode, TarmedLeistung tarmed){
-		List<TarmedExclusion> exclusions = tarmed.getExclusions();
-		
+	public Result<IVerrechenbar> isCompatible(TarmedLeistung tarmedCode, TarmedLeistung tarmed,
+		Konsultation kons){
+		TimeTool date = new TimeTool(kons.getDatum());
+		List<TarmedExclusion> exclusions = tarmed.getExclusions(kons);
 		for (TarmedExclusion tarmedExclusion : exclusions) {
-			if (tarmedExclusion.isMatching(tarmedCode)) {
+			if (tarmedExclusion.isMatching(tarmedCode, date)) {
 				return new Result<IVerrechenbar>(Result.SEVERITY.WARNING, EXKLUSION,
 					tarmed.getCode() + " nicht kombinierbar mit " + tarmedExclusion.toString(), //$NON-NLS-1$
 					null, false);
+			}
+		}
+		List<String> groups = tarmed.getServiceGroups(date);
+		for (String groupName : groups) {
+			Optional<TarmedGroup> group =
+				TarmedGroup.find(groupName, tarmed.get(TarmedLeistung.FLD_LAW), date);
+			if (group.isPresent()) {
+				List<TarmedExclusion> groupExclusions = group.get().getExclusions(kons);
+				for (TarmedExclusion tarmedExclusion : groupExclusions) {
+					if (tarmedExclusion.isMatching(tarmedCode, date)) {
+						return new Result<IVerrechenbar>(Result.SEVERITY.WARNING, EXKLUSION,
+							tarmed.getCode() + " nicht kombinierbar mit " //$NON-NLS-1$
+								+ tarmedExclusion.toString(),
+							null, false);
+					}
+				}
 			}
 		}
 		return new Result<IVerrechenbar>(Result.SEVERITY.OK, OK, "compatible", null, false);

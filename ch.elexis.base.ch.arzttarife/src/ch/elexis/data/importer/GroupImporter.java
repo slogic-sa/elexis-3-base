@@ -3,6 +3,7 @@ package ch.elexis.data.importer;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -29,12 +30,16 @@ public class GroupImporter {
 	private TimeTool validFrom;
 	private TimeTool validTo;
 	
+	private HashMap<String, TransientTarmedGroup> loadedGroups;
+	
 	public GroupImporter(JdbcLink cacheDb, String lang, String law){
 		this.cacheDb = cacheDb;
 		this.lang = lang;
 		this.law = law;
 		this.validFrom = new TimeTool();
 		this.validTo = new TimeTool();
+		
+		this.loadedGroups = new HashMap<>();
 	}
 	
 	public IStatus doImport(IProgressMonitor ipm) throws SQLException, IOException{
@@ -51,23 +56,18 @@ public class GroupImporter {
 				initValidTime(res);
 				
 				String id = getIdString(groupName, law);
-				TarmedGroup group = TarmedGroup.load(id);
-				if(!group.exists()) {
-					group = new TarmedGroup(id, groupName, law, validFrom, validTo);
-					
-					Hashtable<String, String> extensionMap = group.loadExtension();
-					
-					// get OPERATOR, MENGE, ZR_ANZAHL, PRO_NACH, ZR_EINHEIT
-					String limits = getLimits(groupName);
-					extensionMap.put("limits", limits);
-					
-					// get LNR_SLAVE, TYP (invalid combinations with other codes)
-					importKumulations(groupName);
-					
-					group.setExtension(extensionMap);
+				TransientTarmedGroup transientGroup = loadedGroups.get(id);
+				if (transientGroup == null) {
+					transientGroup =
+						new TransientTarmedGroup(id, groupName, law, validFrom, validTo, this);
+					loadedGroups.put(id, transientGroup);
 				}
-				group.addService(serviceCode);
-				
+				transientGroup.addService(serviceCode);
+			}
+			
+			for (String key : loadedGroups.keySet()) {
+				TransientTarmedGroup transientGroup = loadedGroups.get(key);
+				TarmedGroup group = transientGroup.persist();
 				logger.debug("Imported " + group.getLabel());
 			}
 		} finally {
@@ -76,70 +76,6 @@ public class GroupImporter {
 			}
 		}
 		return Status.OK_STATUS;
-	}
-	
-	private String getLimits(String groupName) throws SQLException, IOException{
-		StringBuilder sb = new StringBuilder();
-		Stm subStm = cacheDb.getStatement();
-		try {
-			ResultSet rsub =
-				subStm.query(
-					String.format("SELECT * FROM %sLEISTUNG_MENGEN_ZEIT WHERE LNR=%s AND ART='G'",
-					TarmedReferenceDataImporter.ImportPrefix, JdbcLink.wrap(groupName))); //$NON-NLS-1$
-			List<Map<String, String>> validResults =
-				ImporterUtil.getValidValueMaps(rsub, validFrom);
-			if (!validResults.isEmpty()) {
-				for (Map<String, String> map : validResults) {
-					sb.append(map.get("OPERATOR")).append(","); //$NON-NLS-1$ //$NON-NLS-2$
-					sb.append(map.get("MENGE")).append(","); //$NON-NLS-1$ //$NON-NLS-2$
-					sb.append(map.get("ZR_ANZAHL")).append(","); //$NON-NLS-1$ //$NON-NLS-2$
-					sb.append(map.get("PRO_NACH")).append(","); //$NON-NLS-1$ //$NON-NLS-2$
-					sb.append(map.get("ZR_EINHEIT")).append("#"); //$NON-NLS-1$ //$NON-NLS-2$
-				}
-			}
-			rsub.close();
-		} finally {
-			if (subStm != null) {
-				cacheDb.releaseStatement(subStm);
-			}
-		}
-		return sb.toString();
-	}
-	
-	/**
-	 * Import all the kumulations from the LEISTUNG_KUMULATION table for the given code. The
-	 * kumulations contain inclusions, exclusions and exclusives.
-	 * 
-	 * @param code
-	 *            of a tarmed value
-	 * @param stmCached
-	 * @throws SQLException
-	 */
-	private void importKumulations(String groupName) throws SQLException{
-		Stm subStm = cacheDb.getStatement();
-		try {
-			try (ResultSet res = subStm.query(String.format(
-				"SELECT * FROM %sLEISTUNG_KUMULATION WHERE LNR_MASTER=%s AND ART_MASTER='G'",
-				TarmedReferenceDataImporter.ImportPrefix, JdbcLink.wrap(groupName)))) {
-				TimeTool fromTime = new TimeTool();
-				TimeTool toTime = new TimeTool();
-				
-				while (res != null && res.next()) {
-					fromTime.set(res.getString("GUELTIG_VON"));
-					toTime.set(res.getString("GUELTIG_BIS"));
-					
-					new TarmedKumulation(groupName, res.getString("ART_MASTER"),
-						res.getString("LNR_SLAVE"), res.getString("ART_SLAVE"),
-						res.getString("TYP"), res.getString("ANZEIGE"),
-						res.getString("GUELTIG_SEITE"), fromTime.toString(TimeTool.DATE_COMPACT),
-						toTime.toString(TimeTool.DATE_COMPACT), law);
-				}
-			}
-		} finally {
-			if (subStm != null) {
-				cacheDb.releaseStatement(subStm);
-			}
-		}
 	}
 	
 	private void initValidTime(ResultSet res) throws SQLException{
@@ -157,5 +93,120 @@ public class GroupImporter {
 			return "-" + law;
 		}
 		return "";
+	}
+	
+	private static class TransientTarmedGroup {
+		
+		private String id;
+		private String code;
+		private String law;
+		private StringBuilder services;
+		
+		private String validFrom;
+		private String validTo;
+		
+		private GroupImporter importer;
+		
+		public TransientTarmedGroup(String id, String groupName, String law, TimeTool validFrom,
+			TimeTool validTo, GroupImporter importer){
+			this.id = id;
+			this.code = groupName;
+			this.law = law;
+			this.validFrom = validFrom.toString(TimeTool.DATE_COMPACT);
+			this.validTo = validTo.toString(TimeTool.DATE_COMPACT);
+			
+			this.services = new StringBuilder();
+			
+			this.importer = importer;
+		}
+		
+		public TarmedGroup persist() throws SQLException, IOException{
+			TarmedGroup persistent =
+				new TarmedGroup(id, code, law, validFrom, validTo, services.toString());
+			
+			Hashtable<String, String> extensionMap = persistent.loadExtension();
+			
+			// get OPERATOR, MENGE, ZR_ANZAHL, PRO_NACH, ZR_EINHEIT
+			String limits = getLimits(code);
+			extensionMap.put("limits", limits);
+			
+			// get LNR_SLAVE, TYP (invalid combinations with other codes)
+			importKumulations(code);
+			
+			persistent.setExtension(extensionMap);
+			
+			return persistent;
+		}
+		
+		public void addService(String serviceCode){
+			if (services.length() > 0) {
+				services.append(TarmedGroup.SERVICES_SEPARATOR);
+			}
+			services.append(serviceCode);
+		}
+		
+		private String getLimits(String groupName) throws SQLException, IOException{
+			StringBuilder sb = new StringBuilder();
+			Stm subStm = importer.cacheDb.getStatement();
+			try {
+				ResultSet rsub = subStm.query(
+					String.format("SELECT * FROM %sLEISTUNG_MENGEN_ZEIT WHERE LNR=%s AND ART='G'",
+						TarmedReferenceDataImporter.ImportPrefix, JdbcLink.wrap(groupName))); //$NON-NLS-1$
+				List<Map<String, String>> validResults =
+					ImporterUtil.getValidValueMaps(rsub, new TimeTool(validFrom));
+				if (!validResults.isEmpty()) {
+					for (Map<String, String> map : validResults) {
+						sb.append(map.get("OPERATOR")).append(","); //$NON-NLS-1$ //$NON-NLS-2$
+						sb.append(map.get("MENGE")).append(","); //$NON-NLS-1$ //$NON-NLS-2$
+						sb.append(map.get("ZR_ANZAHL")).append(","); //$NON-NLS-1$ //$NON-NLS-2$
+						sb.append(map.get("PRO_NACH")).append(","); //$NON-NLS-1$ //$NON-NLS-2$
+						sb.append(map.get("ZR_EINHEIT")).append("#"); //$NON-NLS-1$ //$NON-NLS-2$
+					}
+				}
+				rsub.close();
+			} finally {
+				if (subStm != null) {
+					importer.cacheDb.releaseStatement(subStm);
+				}
+			}
+			return sb.toString();
+		}
+		
+		/**
+		 * Import all the kumulations from the LEISTUNG_KUMULATION table for the given code. The
+		 * kumulations contain inclusions, exclusions and exclusives.
+		 * 
+		 * @param code
+		 *            of a tarmed value
+		 * @param stmCached
+		 * @throws SQLException
+		 */
+		private void importKumulations(String groupName) throws SQLException{
+			Stm subStm = importer.cacheDb.getStatement();
+			try {
+				try (ResultSet res = subStm.query(String.format(
+					"SELECT * FROM %sLEISTUNG_KUMULATION WHERE LNR_MASTER=%s AND ART_MASTER='G'",
+					TarmedReferenceDataImporter.ImportPrefix, JdbcLink.wrap(groupName)))) {
+					TimeTool fromTime = new TimeTool();
+					TimeTool toTime = new TimeTool();
+					
+					while (res != null && res.next()) {
+						fromTime.set(res.getString("GUELTIG_VON"));
+						toTime.set(res.getString("GUELTIG_BIS"));
+						
+						new TarmedKumulation(groupName, res.getString("ART_MASTER"),
+							res.getString("LNR_SLAVE"), res.getString("ART_SLAVE"),
+							res.getString("TYP"), res.getString("ANZEIGE"),
+							res.getString("GUELTIG_SEITE"),
+							fromTime.toString(TimeTool.DATE_COMPACT),
+							toTime.toString(TimeTool.DATE_COMPACT), law);
+					}
+				}
+			} finally {
+				if (subStm != null) {
+					importer.cacheDb.releaseStatement(subStm);
+				}
+			}
+		}
 	}
 }

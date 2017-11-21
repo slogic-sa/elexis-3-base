@@ -34,7 +34,8 @@ public class TarmedOptifierTest {
 	private static Patient patGrissemann, patStermann, patOneYear;
 	private static Konsultation konsGriss, konsSter, konsOneYear;
 	private static TarmedLeistung tlBaseFirst5Min, tlBaseXRay, tlBaseRadiologyHospital,
-			tlUltrasound, tlTapingCat1, tlAgeTo1Month, tlAgeTo7Years, tlAgeFrom7Years;
+			tlUltrasound, tlTapingCat1, tlAgeTo1Month, tlAgeTo7Years, tlAgeFrom7Years,
+			tlGroupLimit1, tlGroupLimit2;
 			
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception{
@@ -53,14 +54,16 @@ public class TarmedOptifierTest {
 		tlAgeTo7Years = (TarmedLeistung) TarmedLeistung.getFromCode("00.0900");
 		tlAgeFrom7Years = (TarmedLeistung) TarmedLeistung.getFromCode("00.0890");
 		
+		tlGroupLimit1 = (TarmedLeistung) TarmedLeistung.getFromCode("02.0310");
+		tlGroupLimit2 = (TarmedLeistung) TarmedLeistung.getFromCode("02.0340");
+		
 		//Patient Grissemann with case and consultation
 		patGrissemann = new Patient("Grissemann", "Christoph", "17.05.1966", Patient.MALE);
 		Fall fallGriss = patGrissemann.neuerFall("Testfall Grissemann", Fall.getDefaultCaseReason(),
 			Fall.getDefaultCaseLaw());
 		fallGriss.setInfoElement("Kostenträger", patGrissemann.getId());
 		konsGriss = new Konsultation(fallGriss);
-		konsGriss.addDiagnose(TICode.getFromCode("T1"));
-		konsGriss.addLeistung(tlBaseFirst5Min);
+		resetKons(konsGriss);
 		
 		//Patient Stermann with case and consultation
 		patStermann = new Patient("Stermann", "Dirk", "07.12.1965", Patient.MALE);
@@ -68,8 +71,7 @@ public class TarmedOptifierTest {
 			Fall.getDefaultCaseLaw());
 		fallSter.setInfoElement("Kostenträger", patStermann.getId());
 		konsSter = new Konsultation(fallSter);
-		konsSter.addDiagnose(TICode.getFromCode("T1"));
-		konsSter.addLeistung(tlBaseFirst5Min);
+		resetKons(konsSter);
 		
 		//Patient OneYear with case and consultation
 		String dob = LocalDate.now().minusYears(1).minusDays(1)
@@ -79,9 +81,7 @@ public class TarmedOptifierTest {
 			Fall.getDefaultCaseLaw());
 		fallSter.setInfoElement("Kostenträger", patOneYear.getId());
 		konsOneYear = new Konsultation(fallOneYear);
-		konsOneYear.addDiagnose(TICode.getFromCode("T1"));
-		konsOneYear.addLeistung(tlBaseFirst5Min);
-		
+		resetKons(konsOneYear);
 	}
 	
 	private static void importTarmedReferenceData() throws FileNotFoundException{
@@ -121,30 +121,31 @@ public class TarmedOptifierTest {
 	
 	@Test
 	public void testIsCompatible(){
-		Result<IVerrechenbar> resCompatible = optifier.isCompatible(tlBaseXRay, tlUltrasound);
+		Result<IVerrechenbar> resCompatible =
+			optifier.isCompatible(tlBaseXRay, tlUltrasound, konsSter);
 		assertFalse(resCompatible.isOK());
 		String resText = "";
 		if (!resCompatible.getMessages().isEmpty()) {
 			resText = resCompatible.getMessages().get(0).getText();
 		}
 		assertEquals("39.3005 nicht kombinierbar mit Kapitel 39.01", resText);
-		resCompatible = optifier.isCompatible(tlUltrasound, tlBaseXRay);
+		resCompatible = optifier.isCompatible(tlUltrasound, tlBaseXRay, konsSter);
 		assertTrue(resCompatible.isOK());
 		
-		resCompatible = optifier.isCompatible(tlBaseXRay, tlBaseRadiologyHospital);
+		resCompatible = optifier.isCompatible(tlBaseXRay, tlBaseRadiologyHospital, konsSter);
 		assertFalse(resCompatible.isOK());
 		if (!resCompatible.getMessages().isEmpty()) {
 			resText = resCompatible.getMessages().get(0).getText();
 		}
 		assertEquals("39.0015 nicht kombinierbar mit Leistung 39.0020", resText);
 		
-		resCompatible = optifier.isCompatible(tlBaseRadiologyHospital, tlUltrasound);
+		resCompatible = optifier.isCompatible(tlBaseRadiologyHospital, tlUltrasound, konsSter);
 		assertFalse(resCompatible.isOK());
 		
-		resCompatible = optifier.isCompatible(tlBaseXRay, tlBaseFirst5Min);
+		resCompatible = optifier.isCompatible(tlBaseXRay, tlBaseFirst5Min, konsSter);
 		assertTrue(resCompatible.isOK());
 		
-		resCompatible = optifier.isCompatible(tlBaseFirst5Min, tlBaseRadiologyHospital);
+		resCompatible = optifier.isCompatible(tlBaseFirst5Min, tlBaseRadiologyHospital, konsSter);
 		assertTrue(resCompatible.isOK());
 	}
 	
@@ -204,6 +205,36 @@ public class TarmedOptifierTest {
 		
 		result = optifier.add(tlAgeFrom7Years, konsOneYear);
 		assertFalse(result.isOK());
+	}
+	
+	@Test
+	public void testGroupLimitation(){
+		// limit on group 31 is 48 times per week
+		resetKons(konsGriss);
+		for (int i = 0; i < 24; i++) {
+			Result<IVerrechenbar> result = konsGriss.addLeistung(tlGroupLimit1);
+			assertTrue(result.isOK());
+		}
+		resetKons(konsSter);
+		for (int i = 0; i < 24; i++) {
+			Result<IVerrechenbar> result = konsSter.addLeistung(tlGroupLimit2);
+			assertTrue(result.isOK());
+		}
+		
+		Result<IVerrechenbar> result = konsGriss.addLeistung(tlGroupLimit2);
+		assertFalse(result.isOK());
+		
+		result = konsSter.addLeistung(tlGroupLimit1);
+		assertFalse(result.isOK());
+		
+		resetKons(konsGriss);
+		resetKons(konsSter);
+	}
+	
+	private static void resetKons(Konsultation kons){
+		clearKons(kons);
+		kons.addDiagnose(TICode.getFromCode("T1"));
+		kons.addLeistung(tlBaseFirst5Min);
 	}
 	
 	@Test
@@ -280,7 +311,7 @@ public class TarmedOptifierTest {
 		tlBaseFirst5Min.setExtension(extension);
 	}
 	
-	private void clearKons(Konsultation kons){
+	private static void clearKons(Konsultation kons){
 		for (Verrechnet verrechnet : kons.getLeistungen()) {
 			kons.removeLeistung(verrechnet);
 		}

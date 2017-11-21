@@ -16,6 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Hashtable;
@@ -634,10 +635,16 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 	 * Get the exclusions valid now as String, containing the service and chapter codes. Group
 	 * exclusions are NOT part of the String.
 	 * 
+	 * @param kons
+	 * 
 	 * @return
 	 */
-	public List<TarmedExclusion> getExclusions(){
-		curTimeHelper.setTime(new Date());
+	public List<TarmedExclusion> getExclusions(Konsultation kons){
+		if (kons == null) {
+			curTimeHelper.setTime(new Date());
+		} else {
+			curTimeHelper.set(kons.getDatum());
+		}
 		return getExclusions(curTimeHelper);
 	}
 	
@@ -973,5 +980,18 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 			connection.releaseStatement(stm);
 		}
 		return ret;
+	}
+	
+	public List<TarmedLimitation> getLimitations(){
+		String lim = (String) loadExtension().get("limits"); //$NON-NLS-1$
+		if (lim != null && !lim.isEmpty()) {
+			List<TarmedLimitation> ret = new ArrayList<>();
+			String[] lines = lim.split("#"); //$NON-NLS-1$
+			for (String line : lines) {
+				ret.add(TarmedLimitation.of(line));
+			}
+			return ret;
+		}
+		return Collections.emptyList();
 	}
 }

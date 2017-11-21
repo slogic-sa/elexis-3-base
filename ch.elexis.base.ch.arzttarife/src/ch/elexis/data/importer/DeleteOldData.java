@@ -10,6 +10,7 @@ import ch.elexis.arzttarife_schweiz.Messages;
 import ch.elexis.data.PersistentObject;
 import ch.elexis.data.TarmedDefinitionen;
 import ch.elexis.data.TarmedExtension;
+import ch.elexis.data.TarmedGroup;
 import ch.elexis.data.TarmedKumulation;
 import ch.elexis.data.TarmedLeistung;
 import ch.rgw.tools.JdbcLink;
@@ -86,6 +87,19 @@ public class DeleteOldData {
 						+ TarmedLeistung.ROW_VERSION + "'");
 			}
 			logger.debug("Deleted " + affected + " tarmed kumulation");
+		}
+		if (PersistentObject.tableExists("TARMED_GROUP")) {
+			int affected = 0;
+			if (law != null && !law.isEmpty()) {
+				affected =
+					jdbcLink.exec("DELETE FROM TARMED_GROUP WHERE Law='" + law + "' AND ID <> '" //$NON-NLS-1$//$NON-NLS-2$
+						+ TarmedGroup.ROW_VERSION + "'");
+			} else {
+				affected = jdbcLink
+					.exec("DELETE FROM TARMED_GROUP WHERE (Law='' or Law IS NULL) AND ID <> '" //$NON-NLS-1$
+						+ TarmedGroup.ROW_VERSION + "'");
+			}
+			logger.debug("Deleted " + affected + " tarmed group");
 		}
 		return Status.OK_STATUS;
 	}
