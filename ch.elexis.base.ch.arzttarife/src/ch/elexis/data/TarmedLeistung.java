@@ -988,7 +988,7 @@ public class TarmedLeistung extends UiVerrechenbarAdapter {
 			List<TarmedLimitation> ret = new ArrayList<>();
 			String[] lines = lim.split("#"); //$NON-NLS-1$
 			for (String line : lines) {
-				ret.add(TarmedLimitation.of(line));
+				ret.add(TarmedLimitation.of(line).setTarmedLeistung(this));
 			}
 			return ret;
 		}

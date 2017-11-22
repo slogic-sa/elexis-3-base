@@ -29,7 +29,8 @@ public class TarmedLimitation {
 	
 	private int electronicBilling;
 	
-	private TarmedGroup group;
+	private TarmedLeistung tarmedLeistung;
+	private TarmedGroup tarmedGroup;
 	
 	public enum LimitationUnit {
 			LOCATION_SESSION, SIDE, SESSION, PATIENT_SESSION, COVERAGE, STAY, TESTSERIES, PREGNANCY,
@@ -110,7 +111,7 @@ public class TarmedLimitation {
 		TarmedLimitation ret = new TarmedLimitation();
 		
 		String[] parts = limitation.split(","); //$NON-NLS-1$
-		if (parts.length == 6) {
+		if (parts.length >= 5) {
 			if (parts[0] != null && !parts[0].isEmpty()) {
 				ret.operator = parts[0].trim();
 			}
@@ -126,25 +127,25 @@ public class TarmedLimitation {
 			if (parts[4] != null && !parts[4].isEmpty()) {
 				ret.limitationUnit = LimitationUnit.from(Float.valueOf(parts[4].trim()).intValue());
 			}
+		}
+		if (parts.length >= 6) {
 			if (parts[5] != null && !parts[5].isEmpty()) {
 				ret.electronicBilling = Float.valueOf(parts[5].trim()).intValue();
 			}
+		} else {
+			ret.electronicBilling = 0;
 		}
 		return ret;
 	}
 	
-	/**
-	 * Factory method for creating {@link TarmedLimitation} objects of {@link TarmedGroup}
-	 * limitations.
-	 * 
-	 * @param limitation
-	 * @param tarmedGroup
-	 * @return
-	 */
-	public static TarmedLimitation of(String limitation, TarmedGroup tarmedGroup){
-		TarmedLimitation ret = of(limitation);
-		ret.group = tarmedGroup;
-		return ret;
+	public TarmedLimitation setTarmedLeistung(TarmedLeistung tarmedLeistung){
+		this.tarmedLeistung = tarmedLeistung;
+		return this;
+	}
+	
+	public TarmedLimitation setTarmedGroup(TarmedGroup tarmedGroup){
+		this.tarmedGroup = tarmedGroup;
+		return this;
 	}
 	
 	@Override
@@ -160,9 +161,11 @@ public class TarmedLimitation {
 			sb.append(ch.elexis.arzttarife_schweiz.Messages.TarmedOptifier_codemax + amount
 				+ ch.elexis.arzttarife_schweiz.Messages.TarmedOptifier_perDay);
 		} else if (limitationUnit == LimitationUnit.WEEK) {
-			if (group != null) {
-				sb.append(ch.elexis.arzttarife_schweiz.Messages.TarmedOptifier_groupmax + " "
-					+ group.getCode() + " " + amount
+			if (tarmedGroup != null) {
+				sb.append(String.format(
+					ch.elexis.arzttarife_schweiz.Messages.TarmedOptifier_groupmax,
+					tarmedGroup.getCode())
+					+ amount
 					+ String.format(ch.elexis.arzttarife_schweiz.Messages.TarmedOptifier_perWeeks,
 						limitationAmount));
 			} else {
@@ -171,9 +174,11 @@ public class TarmedLimitation {
 						limitationAmount));
 			}
 		} else if (limitationUnit == LimitationUnit.MONTH) {
-			if (group != null) {
-				sb.append(ch.elexis.arzttarife_schweiz.Messages.TarmedOptifier_groupmax + " "
-					+ group.getCode() + " " + amount
+			if (tarmedGroup != null) {
+				sb.append(String.format(
+					ch.elexis.arzttarife_schweiz.Messages.TarmedOptifier_groupmax,
+					tarmedGroup.getCode())
+					+ amount
 					+ String.format(ch.elexis.arzttarife_schweiz.Messages.TarmedOptifier_perMonth,
 						limitationAmount));
 			} else {
@@ -182,9 +187,11 @@ public class TarmedLimitation {
 						limitationAmount));
 			}
 		} else if (limitationUnit == LimitationUnit.YEAR) {
-			if (group != null) {
-				sb.append(ch.elexis.arzttarife_schweiz.Messages.TarmedOptifier_groupmax + " "
-					+ group.getCode() + " " + amount
+			if (tarmedGroup != null) {
+				sb.append(String.format(
+					ch.elexis.arzttarife_schweiz.Messages.TarmedOptifier_groupmax,
+					tarmedGroup.getCode())
+					+ amount
 					+ String.format(ch.elexis.arzttarife_schweiz.Messages.TarmedOptifier_perYears,
 						limitationAmount));
 			} else {
@@ -208,16 +215,16 @@ public class TarmedLimitation {
 			|| limitationUnit == LimitationUnit.COVERAGE;
 	}
 	
-	public Result<IVerrechenbar> test(Konsultation kons, Verrechnet verrechnet){
+	public Result<IVerrechenbar> test(Konsultation kons, Verrechnet newVerrechnet){
 		if (limitationUnit == LimitationUnit.SIDE || limitationUnit == LimitationUnit.SESSION) {
-			return testSideOrSession(kons, verrechnet);
+			return testSideOrSession(kons, newVerrechnet);
 		} else if (limitationUnit == LimitationUnit.DAY) {
-			return testDay(kons, verrechnet);
+			return testDay(kons, newVerrechnet);
 		} else if (limitationUnit == LimitationUnit.WEEK || limitationUnit == LimitationUnit.MONTH
 			|| limitationUnit == LimitationUnit.YEAR) {
-			return testDuration(kons, verrechnet);
+			return testDuration(kons, newVerrechnet);
 		} else if (limitationUnit == LimitationUnit.COVERAGE) {
-			return testCoverage(kons, verrechnet);
+			return testCoverage(kons, newVerrechnet);
 		}
 		return new Result<IVerrechenbar>(null);
 	}
@@ -228,17 +235,16 @@ public class TarmedLimitation {
 			return ret;
 		}
 		if (operator.equals("<=")) {
-			if (group == null) {
+			if (tarmedGroup == null) {
 				List<Verrechnet> verrechnetByCoverage = getVerrechnetByCoverageAndCode(kons,
-					verrechnet.getVerrechenbar().getCode());
+					tarmedLeistung.getCode());
 				if (getVerrechnetCount(verrechnetByCoverage) > amount) {
-					reduceAmountOrDelete(verrechnet);
 					ret = new Result<IVerrechenbar>(Result.SEVERITY.WARNING,
 						TarmedOptifier.KUMULATION, toString(), null, false);
 				}
 			} else {
 				List<Verrechnet> allVerrechnetOfGroup = new ArrayList<>();
-				List<String> serviceCodes = group.getServices();
+				List<String> serviceCodes = tarmedGroup.getServices();
 				for (String code : serviceCodes) {
 					allVerrechnetOfGroup.addAll(getVerrechnetByCoverageAndCode(kons, code));
 				}
@@ -258,7 +264,7 @@ public class TarmedLimitation {
 			return ret;
 		}
 		if (operator.equals("<=")) {
-			if (group == null) {
+			if (tarmedGroup == null) {
 				List<Verrechnet> verrechnetByMandant = getVerrechnetByMandantAndCodeDuring(kons,
 					verrechnet.getVerrechenbar().getCode());
 				if (getVerrechnetCount(verrechnetByMandant) > amount) {
@@ -268,7 +274,7 @@ public class TarmedLimitation {
 				}
 			} else {
 				List<Verrechnet> allVerrechnetOfGroup = new ArrayList<>();
-				List<String> serviceCodes = group.getServices();
+				List<String> serviceCodes = tarmedGroup.getServices();
 				for (String code : serviceCodes) {
 					allVerrechnetOfGroup.addAll(getVerrechnetByMandantAndCodeDuring(kons, code));
 				}

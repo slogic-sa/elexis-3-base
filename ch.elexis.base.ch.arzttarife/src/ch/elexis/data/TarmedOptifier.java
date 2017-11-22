@@ -288,36 +288,9 @@ public class TarmedOptifier implements IOptifier {
 			}
 		}
 
-		if (bOptify) {
-			// service limitations
-			List<TarmedLimitation> limitations = tc.getLimitations();
-			for (TarmedLimitation tarmedLimitation : limitations) {
-				if (tarmedLimitation.isTestable()) {
-					Result<IVerrechenbar> result = tarmedLimitation.test(kons, newVerrechnet);
-					if (!result.isOK()) {
-						return result;
-					}
-				}
-			}
-			// group limitations
-			TimeTool date = new TimeTool(kons.getDatum());
-			List<String> groups = tc.getServiceGroups(date);
-			for (String groupName : groups) {
-				Optional<TarmedGroup> group =
-					TarmedGroup.find(groupName, tc.get(TarmedLeistung.FLD_LAW), date);
-				if (group.isPresent()) {
-					limitations = group.get().getLimitations();
-					for (TarmedLimitation tarmedLimitation : limitations) {
-						if (tarmedLimitation.isTestable()) {
-							Result<IVerrechenbar> result =
-								tarmedLimitation.test(kons, newVerrechnet);
-							if (!result.isOK()) {
-								return result;
-							}
-						}
-					}
-				}
-			}
+		Result<IVerrechenbar> limitResult = checkLimitations(kons, tc, newVerrechnet);
+		if (!limitResult.isOK()) {
+			return limitResult;
 		}
 
 		String tcid = code.getCode();
@@ -475,6 +448,42 @@ public class TarmedOptifier implements IOptifier {
 
 			}
 			return new Result<IVerrechenbar>(Result.SEVERITY.OK, PREISAENDERUNG, "Preis", null, false); //$NON-NLS-1$
+		}
+		return new Result<IVerrechenbar>(null);
+	}
+	
+	private Result<IVerrechenbar> checkLimitations(Konsultation kons, TarmedLeistung tarmedLeistung,
+		Verrechnet newVerrechnet){
+		if (bOptify) {
+			// service limitations
+			List<TarmedLimitation> limitations = tarmedLeistung.getLimitations();
+			for (TarmedLimitation tarmedLimitation : limitations) {
+				if (tarmedLimitation.isTestable()) {
+					Result<IVerrechenbar> result = tarmedLimitation.test(kons, newVerrechnet);
+					if (!result.isOK()) {
+						return result;
+					}
+				}
+			}
+			// group limitations
+			TimeTool date = new TimeTool(kons.getDatum());
+			List<String> groups = tarmedLeistung.getServiceGroups(date);
+			for (String groupName : groups) {
+				Optional<TarmedGroup> group =
+					TarmedGroup.find(groupName, tarmedLeistung.get(TarmedLeistung.FLD_LAW), date);
+				if (group.isPresent()) {
+					limitations = group.get().getLimitations();
+					for (TarmedLimitation tarmedLimitation : limitations) {
+						if (tarmedLimitation.isTestable()) {
+							Result<IVerrechenbar> result =
+								tarmedLimitation.test(kons, newVerrechnet);
+							if (!result.isOK()) {
+								return result;
+							}
+						}
+					}
+				}
+			}
 		}
 		return new Result<IVerrechenbar>(null);
 	}

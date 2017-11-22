@@ -209,7 +209,7 @@ public class TarmedGroup extends PersistentObject {
 			List<TarmedLimitation> ret = new ArrayList<>();
 			String[] lines = lim.split("#"); //$NON-NLS-1$
 			for (String line : lines) {
-				ret.add(TarmedLimitation.of(line, this));
+				ret.add(TarmedLimitation.of(line).setTarmedGroup(this));
 			}
 			return ret;
 		}

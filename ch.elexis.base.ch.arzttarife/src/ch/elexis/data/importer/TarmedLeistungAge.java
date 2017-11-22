@@ -24,9 +24,9 @@ public class TarmedLeistungAge {
 	private void parseAgeString(String ageString){
 		String[] parts = ageString.split("\\|");
 		if (parts.length == 5) {
-			fromDays = getAsDays(parts[0], parts[1], parts[4]);
+			fromDays = getAsDays(parts[0], parts[1], parts[4], false);
 			fromText = getAsText(parts[0], parts[1], parts[4]);
-			toDays = getAsDays(parts[2], parts[3], parts[4]);
+			toDays = getAsDays(parts[2], parts[3], parts[4], true);
 			toText = getAsText(parts[2], parts[3], parts[4]);
 		} else {
 			fromDays = -1;
@@ -54,7 +54,7 @@ public class TarmedLeistungAge {
 		return sb.toString();
 	}
 	
-	private long getAsDays(String age, String tolerance, String unit){
+	private long getAsDays(String age, String tolerance, String unit, boolean positiveTolerance){
 		if (age.equals("-1")) {
 			return -1;
 		}
@@ -66,7 +66,11 @@ public class TarmedLeistungAge {
 				ageInt *= 30;
 			}
 			int toleanceInt = Integer.parseInt(tolerance);
-			return ageInt + toleanceInt;
+			if (positiveTolerance) {
+				return ageInt + toleanceInt;
+			} else {
+				return ageInt - toleanceInt;
+			}
 		} catch (NumberFormatException ne) {
 			// ignore
 		}
