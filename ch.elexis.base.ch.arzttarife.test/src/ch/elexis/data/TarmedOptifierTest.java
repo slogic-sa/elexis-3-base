@@ -44,18 +44,25 @@ public class TarmedOptifierTest {
 		importTarmedReferenceData();
 		
 		// init some basic services
-		tlBaseFirst5Min = (TarmedLeistung) TarmedLeistung.getFromCode("00.0010");
-		tlBaseXRay = (TarmedLeistung) TarmedLeistung.getFromCode("39.0020");
-		tlBaseRadiologyHospital = (TarmedLeistung) TarmedLeistung.getFromCode("39.0015");
-		tlUltrasound = (TarmedLeistung) TarmedLeistung.getFromCode("39.3005");
-		tlTapingCat1 = (TarmedLeistung) TarmedLeistung.getFromCode("01.0110");
+		tlBaseFirst5Min =
+			(TarmedLeistung) TarmedLeistung.getFromCode("00.0010", new TimeTool(), null);
+		tlBaseXRay = (TarmedLeistung) TarmedLeistung.getFromCode("39.0020", new TimeTool(), null);
+		tlBaseRadiologyHospital =
+			(TarmedLeistung) TarmedLeistung.getFromCode("39.0015", new TimeTool(), null);
+		tlUltrasound = (TarmedLeistung) TarmedLeistung.getFromCode("39.3005", new TimeTool(), null);
+		tlTapingCat1 = (TarmedLeistung) TarmedLeistung.getFromCode("01.0110", new TimeTool(), null);
 		
-		tlAgeTo1Month = (TarmedLeistung) TarmedLeistung.getFromCode("00.0870");
-		tlAgeTo7Years = (TarmedLeistung) TarmedLeistung.getFromCode("00.0900");
-		tlAgeFrom7Years = (TarmedLeistung) TarmedLeistung.getFromCode("00.0890");
+		tlAgeTo1Month =
+			(TarmedLeistung) TarmedLeistung.getFromCode("00.0870", new TimeTool(), null);
+		tlAgeTo7Years =
+			(TarmedLeistung) TarmedLeistung.getFromCode("00.0900", new TimeTool(), null);
+		tlAgeFrom7Years =
+			(TarmedLeistung) TarmedLeistung.getFromCode("00.0890", new TimeTool(), null);
 		
-		tlGroupLimit1 = (TarmedLeistung) TarmedLeistung.getFromCode("02.0310");
-		tlGroupLimit2 = (TarmedLeistung) TarmedLeistung.getFromCode("02.0340");
+		tlGroupLimit1 =
+			(TarmedLeistung) TarmedLeistung.getFromCode("02.0310", new TimeTool(), null);
+		tlGroupLimit2 =
+			(TarmedLeistung) TarmedLeistung.getFromCode("02.0340", new TimeTool(), null);
 		
 		//Patient Grissemann with case and consultation
 		patGrissemann = new Patient("Grissemann", "Christoph", "17.05.1966", Patient.MALE);
@@ -151,8 +158,9 @@ public class TarmedOptifierTest {
 	
 	@Test
 	public void testSetBezug(){
-		additionalService = (TarmedLeistung) TarmedLeistung.getFromCode("39.5010");
-		mainService = (TarmedLeistung) TarmedLeistung.getFromCode("39.5060");
+		additionalService =
+			(TarmedLeistung) TarmedLeistung.getFromCode("39.5010", new TimeTool(), null);
+		mainService = (TarmedLeistung) TarmedLeistung.getFromCode("39.5060", new TimeTool(), null);
 		// additional without main, not allowed
 		Result<IVerrechenbar> resultSter = optifier.add(additionalService, konsSter);
 		assertFalse(resultSter.isOK());

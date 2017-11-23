@@ -43,20 +43,23 @@ public class DeleteOldData {
 					+ "AND TARMED.Law='" + law + "') AND ID <> '" + TarmedLeistung.ROW_VERSION
 					+ "'");
 				
-				affected += jdbcLink.exec("DELETE FROM TARMED_EXTENSION "
-					+ "WHERE exists( SELECT 1 FROM TARMED_GROUP WHERE TARMED_EXTENSION.Code = TARMED_GROUP.ID "
-					+ "AND TARMED_GROUP.Law='" + law + "') AND ID <> '" + TarmedLeistung.ROW_VERSION
-					+ "'");
+				if (PersistentObject.tableExists("TARMED_GROUP")) {
+					affected += jdbcLink.exec("DELETE FROM TARMED_EXTENSION "
+						+ "WHERE exists( SELECT 1 FROM TARMED_GROUP WHERE TARMED_EXTENSION.Code = TARMED_GROUP.ID "
+						+ "AND TARMED_GROUP.Law='" + law + "') AND ID <> '"
+						+ TarmedLeistung.ROW_VERSION + "'");
+				}
 			} else {
 				affected = jdbcLink.exec("DELETE FROM TARMED_EXTENSION "
 					+ "WHERE exists( SELECT 1 FROM TARMED WHERE TARMED_EXTENSION.Code = TARMED.ID "
 					+ "AND (TARMED.Law='' or TARMED.Law IS NULL))  AND ID <> '"
 					+ TarmedLeistung.ROW_VERSION + "'");
-				
-				affected += jdbcLink.exec("DELETE FROM TARMED_EXTENSION "
-					+ "WHERE exists( SELECT 1 FROM TARMED_GROUP WHERE TARMED_EXTENSION.Code = TARMED_GROUP.ID "
-					+ "AND (TARMED_GROUP.Law='' or TARMED_GROUP.Law IS NULL))  AND ID <> '"
-					+ TarmedLeistung.ROW_VERSION + "'");
+				if (PersistentObject.tableExists("TARMED_GROUP")) {
+					affected += jdbcLink.exec("DELETE FROM TARMED_EXTENSION "
+						+ "WHERE exists( SELECT 1 FROM TARMED_GROUP WHERE TARMED_EXTENSION.Code = TARMED_GROUP.ID "
+						+ "AND (TARMED_GROUP.Law='' or TARMED_GROUP.Law IS NULL))  AND ID <> '"
+						+ TarmedLeistung.ROW_VERSION + "'");
+				}
 			}
 			logger.debug("Deleted " + affected + " tarmed extensions");
 		}

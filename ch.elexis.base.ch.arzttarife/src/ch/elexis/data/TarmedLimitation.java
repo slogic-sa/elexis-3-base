@@ -432,4 +432,12 @@ public class TarmedLimitation {
 		}
 		return false;
 	}
+	
+	public LimitationUnit getLimitationUnit(){
+		return limitationUnit;
+	}
+	
+	public int getAmount(){
+		return amount;
+	}
 }

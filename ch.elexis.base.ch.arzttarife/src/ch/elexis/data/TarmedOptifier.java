@@ -27,9 +27,8 @@ import ch.elexis.core.constants.Preferences;
 import ch.elexis.core.data.activator.CoreHub;
 import ch.elexis.core.data.interfaces.IOptifier;
 import ch.elexis.core.data.interfaces.IVerrechenbar;
+import ch.elexis.data.TarmedLimitation.LimitationUnit;
 import ch.elexis.data.importer.TarmedLeistungAge;
-import ch.elexis.data.importer.TarmedLeistungLimits;
-import ch.elexis.data.importer.TarmedLeistungLimits.LimitsEinheit;
 import ch.elexis.data.importer.TarmedReferenceDataImporter;
 import ch.elexis.tarmedprefs.RechnungsPrefs;
 import ch.rgw.tools.Result;
@@ -629,12 +628,11 @@ public class TarmedOptifier implements IOptifier {
 	}
 	
 	private int getMaxPerMaster(TarmedLeistung slave){
-		String lim = (String) slave.loadExtension().get("limits");
-		List<TarmedLeistungLimits> limits = TarmedLeistungLimits.of(lim);
-		for (TarmedLeistungLimits limit : limits) {
-			if (limit.getEinheit() == LimitsEinheit.HAUPTLEISTUNG) {
+		List<TarmedLimitation> limits = slave.getLimitations();
+		for (TarmedLimitation limit : limits) {
+			if (limit.getLimitationUnit() == LimitationUnit.MAINSERVICE) {
 				// only an integer makes sense here
-				return (int) limit.getMenge();
+				return (int) limit.getAmount();
 			}
 		}
 		// default to unknown
