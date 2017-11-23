@@ -92,7 +92,7 @@ public class IatrixOverview extends ViewPart implements IActivationListener, ISa
 	// container for hKonsultationDatum, hlMandant, cbFall
 	
 	// Parts (from top to bottom that make up our display
-	private JournalHeader formHeader = null; // Patient name, sex, birthday, remarks, sticker, account, balance, account overview
+	private JournalHeader journalHeader = null; // Patient name, sex, birthday, remarks, sticker, account, balance, account overview
 	private KTable problemsKTable = null; // On top
 	private ProblemArea problemsArea = null; // KTable with Date, nr, diagnosis, therapy, code, activ/inactiv
 	private ViewMenus menus;
@@ -117,7 +117,7 @@ public class IatrixOverview extends ViewPart implements IActivationListener, ISa
 		Composite formBody = form.getBody();
 		
 		formBody.setLayout(new GridLayout(1, true));
-		formHeader = new JournalHeader(formBody);
+		journalHeader = new JournalHeader(formBody);
 		
 		SashForm mainSash = new SashForm(form.getBody(), SWT.VERTICAL);
 		mainSash.setLayoutData(SWTHelper.getFillGridData(1, true, 1, true));
@@ -129,7 +129,7 @@ public class IatrixOverview extends ViewPart implements IActivationListener, ISa
 		problemsArea = new ProblemArea(topArea, IatrixOverview.this.getPartName(), getViewSite());
 		problemsKTable = problemsArea.getProblemKTable();
 		allAreas = new ArrayList<>();
-		allAreas.add(formHeader);
+		allAreas.add(journalHeader);
 		allAreas.add(problemsArea);
 		makeActions();
 		menus = new ViewMenus(getViewSite());
@@ -221,12 +221,12 @@ public class IatrixOverview extends ViewPart implements IActivationListener, ISa
 		};
 	
 	private final ElexisUiEventListenerImpl eeli_kons = new ElexisUiEventListenerImpl(
-		Konsultation.class, EVENT_SELECTED | EVENT_UPDATE | EVENT_RELOAD) {
+		Konsultation.class) {
 		
 		@Override
 		public void runInUi(ElexisEvent ev){
 			Konsultation newKons = (Konsultation) ev.getObject();
-			String msg = "unknown";
+			String msg = "";
 			switch (ev.getType()) {
 			case EVENT_SELECTED:
 				msg = "EVENT_SELECTED";
@@ -234,10 +234,14 @@ public class IatrixOverview extends ViewPart implements IActivationListener, ISa
 			case EVENT_UPDATE:
 				msg = "EVENT_UPDATE";
 				break;
+			case EVENT_DESELECTED:
+				msg = "EVENT_DESELECTED";
+				break;
 			case EVENT_RELOAD:
 				msg = "EVENT_RELOAD";
 				break;
 			}
+			logEvent(newKons, String.format("eeli_kons type %d msg %s", ev.getType(), msg));
 			// when we get an update or select event the parameter is always not null
 			if (actKons == null) {
 				logEvent(newKons, "eeli_kons " + msg + " SAVE_KONS");
@@ -323,15 +327,33 @@ public class IatrixOverview extends ViewPart implements IActivationListener, ISa
 		 */
 	}
 	
-	private final ElexisUiEventListenerImpl eeli_pat = new ElexisUiEventListenerImpl(Patient.class,
-		ElexisEvent.EVENT_SELECTED | ElexisEvent.EVENT_RELOAD | ElexisEvent.EVENT_UPDATE) {
+	private final ElexisUiEventListenerImpl eeli_pat = new ElexisUiEventListenerImpl(Patient.class) {
 		
 		@Override
 		public void runInUi(ElexisEvent ev){
+			String msg = "";
+			switch (ev.getType()) {
+			case EVENT_SELECTED:
+				msg = "EVENT_SELECTED";
+				break;
+			case EVENT_UPDATE:
+				msg = "EVENT_UPDATE";
+				break;
+			case EVENT_RELOAD:
+				msg = "EVENT_RELOAD";
+				break;
+			}
 			Patient newPat = (Patient) ev.getObject();
-			if (actKons != null && !actKons.getFall().getPatient().getId().equals(newPat.getId())) {
-				updateAllKonsAreas(null, KonsActions.ACTIVATE_KONS);
+			log.debug(String.format("eeli_pat %d %s %s actKons null: %s", ev.getType(), msg,  newPat.toString(), actKons == null));
+			if (actKons != null && actKons.getFall().getPatient().getId().equals(newPat.getId())) {
+				log.debug(String.format("eeli_pat %d %s %s nothing todo", ev.getType(), msg,  newPat.toString()));
+			} else {
+				journalHeader.setPatient(newPat);
+				problemsArea.setPatient(newPat);
+				actKons = newPat.getLetzteKons(false);
+				updateAllKonsAreas(actKons, KonsActions.ACTIVATE_KONS);
 				displaySelectedPatient(newPat, "eeli_pat " + ev.getType());
+				log.debug(String.format("eeli_pat %d %s %s %s changed", ev.getType(), msg, actKons, newPat.getPersonalia()));
 			}
 		}
 	};
@@ -352,7 +374,7 @@ public class IatrixOverview extends ViewPart implements IActivationListener, ISa
 	 */
 	private void activateContext(){
 		IContextService contextService =
-			(IContextService) getSite().getService(IContextService.class);
+			getSite().getService(IContextService.class);
 		contextService.activateContext(Constants.VIEW_CONTEXT_ID);
 	}
 	
