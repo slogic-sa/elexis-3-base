@@ -61,6 +61,7 @@ import ch.elexis.admin.AccessControlDefaults;
 import ch.elexis.core.data.activator.CoreHub;
 import ch.elexis.core.data.events.ElexisEvent;
 import ch.elexis.core.data.events.ElexisEventDispatcher;
+import ch.elexis.core.data.events.ElexisEventListener;
 import ch.elexis.core.ui.UiDesk;
 import ch.elexis.core.ui.actions.GlobalActions;
 import ch.elexis.core.ui.actions.GlobalEventDispatcher;
@@ -317,7 +318,20 @@ public class JournalView extends ViewPart implements IActivationListener, ISavea
 			}
 		};
 
-	private final ElexisUiEventListenerImpl eeli_kons =
+		private final ElexisEventListener eeli_update = new ElexisUiEventListenerImpl(
+			Konsultation.class, ElexisEvent.EVENT_UPDATE) {
+			@Override
+			public void runInUi(ElexisEvent ev){
+				Konsultation actKons =
+					(Konsultation) ElexisEventDispatcher.getSelected(Konsultation.class);
+				if (actKons != null) {
+					konsVerrechnung.setKons(actKons.getFall().getPatient(), actKons, KonsActions.EVENT_UPDATE);
+				}
+				log.debug(String.format("eeli_update %s ", ev.toString()),  actKons);
+			}
+		};
+
+		private final ElexisUiEventListenerImpl eeli_kons =
 			new ElexisUiEventListenerImpl(Konsultation.class) {
 
 		@Override
@@ -342,14 +356,13 @@ public class JournalView extends ViewPart implements IActivationListener, ISavea
 				removedStaleKonsLocks = true;
 				KonsTextLock.deleteObsoleteLocks(newKons);
 			}
-			log.debug(String.format("eeli_pat %s %s", msg, ev.toString()),  newKons);
+			log.debug(String.format("runInUi act %s new %s %s", actKons, msg, ev.toString()),  newKons);
 			// when we get an update or select event the parameter is always not null
 			Patient newPatient = null;
 			if (newKons != null) {
 				newPatient = newKons.getFall().getPatient();
 			}
 			if ((actKons == null) || !Helpers.haveSameContent(newKons, actKons)) {
-				logEvent(newKons, "eeli_kons " + msg + " SAVE_KONS");
 				// updateAllKonsAreas(actKons, KonsActions.SAVE_KONS);
 				if (newKons != null) {
 					newPatient = newKons.getFall().getPatient();
@@ -357,7 +370,6 @@ public class JournalView extends ViewPart implements IActivationListener, ISavea
 						displaySelectedPatient(newPatient, "eeli_kons newPatient");
 					}
 				}
-				logEvent(newKons, "eeli_kons " + msg + " ACTIVATE_KONS");
 				updateAllKonsAreas(newPatient, newKons, KonsActions.ACTIVATE_KONS);
 			} else {
 				// Or we would simply forget to update it after
@@ -441,7 +453,9 @@ public class JournalView extends ViewPart implements IActivationListener, ISavea
 
 	private final ElexisUiEventListenerImpl eeli_pat =
 		// Soll hier auch noch auf RELOAD und UPDATE reagiert werden
-		new ElexisUiEventListenerImpl(Patient.class) {
+		new ElexisUiEventListenerImpl(Patient.class,
+			ElexisEvent.EVENT_UPDATE | ElexisEvent.EVENT_SELECTED | ElexisEvent.EVENT_RELOAD)
+	{
 
 			@Override
 			public void runInUi(ElexisEvent ev){
@@ -461,8 +475,8 @@ public class JournalView extends ViewPart implements IActivationListener, ISavea
 					msg = "EVENT_RELOAD";
 					break;
 				}
-				log.debug(String.format("eeli_pat %d %s %s", ev.getType(), msg, newPat.getPersonalia()));
-				displaySelectedPatient(newPat, "eeli_pat " + ev.getType());
+				log.debug(String.format("eeli_pat 1: %d %s %s", ev.getType(), msg, newPat.getPersonalia()));
+				displaySelectedPatient(newPat, "eeli_pat 2: " + ev.getType());
 			}
 		};
 
@@ -642,7 +656,7 @@ public class JournalView extends ViewPart implements IActivationListener, ISavea
 	public void visible(boolean mode){
 		if (mode == true) {
 			ElexisEventDispatcher.getInstance().addListeners(eeli_kons, eeli_problem, eeli_pat,
-				eeli_user);
+				eeli_user, eeli_update);
 			Konsultation newKons = (Konsultation) ElexisEventDispatcher.getSelected(Konsultation.class);
 			if (newKons != null) {
 				Patient newPatient = newKons.getFall().getPatient();
@@ -659,7 +673,7 @@ public class JournalView extends ViewPart implements IActivationListener, ISavea
 		} else {
 			heartbeat.enableListener(false);
 			ElexisEventDispatcher.getInstance().removeListeners(eeli_kons, eeli_problem,
-				eeli_pat, eeli_user);
+				eeli_pat, eeli_user,  eeli_update);
 		}
 	};
 
