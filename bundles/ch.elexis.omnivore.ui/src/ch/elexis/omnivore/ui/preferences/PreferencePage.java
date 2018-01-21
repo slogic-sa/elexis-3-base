@@ -412,8 +412,8 @@ public class PreferencePage extends FieldEditorPreferencePage implements IWorkbe
 		// For automatic archiving of incoming files:
 		// construct the keys to the elexis preference store from a fixed header plus rule number:
 		for (Integer i = 0; i < Preferences.getOmnivorenRulesForAutoArchiving(); i++) {
-			PREF_SRC_PATTERN[i] = PREFBASE + PREFERENCE_SRC_PATTERN + i.toString().trim(); //$NON-NLS-1$	//If this source pattern is found in the filename...
-			PREF_DEST_DIR[i] = PREFBASE + PREFERENCE_DEST_DIR + i.toString().trim(); //$NON-NLS-1$					//the incoming file will be archived here after having been read
+			PREF_SRC_PATTERN[i] = PREFBASE + PREFERENCE_SRC_PATTERN + i.toString().trim(); //If this source pattern is found in the filename...
+			PREF_DEST_DIR[i] = PREFBASE + PREFERENCE_DEST_DIR + i.toString().trim(); //the incoming file will be archived here after having been read
 		}
 		
 	}

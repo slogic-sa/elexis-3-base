@@ -716,6 +716,8 @@ public class DocHandle extends PersistentObject implements IOpaqueDocument {
 					dh.setDate(fid.saveDate);
 					dh.setCreationDate(fid.originDate);
 				}
+				baos.close();
+				applyRenameRules(dh, file);
 				return dh;
 			} catch (Exception ex) {
 				ExHandler.handle(ex);
@@ -736,7 +738,7 @@ public class DocHandle extends PersistentObject implements IOpaqueDocument {
 		File file = new File(f);
 		if (!file.canRead()) {
 			SWTHelper.showError(Messages.DocHandle_cantReadCaption,
-				MessageFormat.format(Messages.DocHandle_cantReadMessage, f));
+				String.format(Messages.DocHandle_cantReadMessage, f));
 			return null;
 		}
 		
@@ -791,76 +793,62 @@ public class DocHandle extends PersistentObject implements IOpaqueDocument {
 					Messages.DocHandle_importErrorMessage2);
 				return null;
 			}
-			
-			try {
-				for (Integer i = 0; i < Preferences.getOmnivorenRulesForAutoArchiving(); i++) {
-					String SrcPattern = Preferences.getOmnivoreRuleForAutoArchivingSrcPattern(i);
-					String DestDir = Preferences.getOmnivoreRuleForAutoArchivingDestDir(i);
-					
-					if ((SrcPattern != null) && (DestDir != null)
-						&& ((SrcPattern != "" || DestDir != ""))) {
-						log.debug("Automatic archiving found matching rule #" + (i + 1)
-							+ " (1-based index):");
-						log.debug("file.getAbsolutePath(): " + file.getAbsolutePath());
-						log.debug("Pattern: " + SrcPattern);
-						log.debug("DestDir: " + DestDir);
-						
-						if (file.getAbsolutePath().contains(SrcPattern)) {
-							log.debug("SrcPattern found in file.getAbsolutePath()" + i);
-							
-							if (DestDir == "") {
-								log.debug(
-									"DestDir is empty. No more rules will be evaluated for this file. Returning.");
-								return dh;
-							}
-							
-							File newFile = new File(DestDir);
-							if (newFile.isDirectory()) {
-								log.debug("DestDir is a directory. Adding file.getName()...");
-								newFile = new File(DestDir + File.separatorChar + file.getName());
-							}
-							
-							if (newFile.isDirectory()) {
-								log.debug("NewFile.isDirectory==true; renaming not attempted");
-								SWTHelper.showError(Messages.DocHandle_MoveErrorCaption,
-									MessageFormat.format(Messages.DocHandle_MoveErrorDestIsDir,
-										DestDir, file.getName()));
-							} else {
-								if (newFile.isFile()) {
-									log.debug("NewFile.isFile==true; renaming not attempted");
-									SWTHelper.showError(Messages.DocHandle_MoveErrorCaption,
-										MessageFormat.format(Messages.DocHandle_MoveErrorDestIsFile,
-											DestDir, file.getName()));
-								} else {
-									log.debug(
-										"renaming incoming file to: " + newFile.getAbsolutePath());
-									if (Files.move(file.toPath(), newFile.toPath(),
-										REPLACE_EXISTING) != null) {
-										log.debug("renaming ok");
-									} else {
-										log.debug("renaming attempted, but returned false.");
-										log.debug(
-											"However, I may probably have observed this after successful moves?! So I won't show an error dialog here. js");
-										log.debug(
-											"So I won't show an error dialog here; if a real exception occured, that would suffice to trigger it.");
-										// SWTHelper.showError(Messages.DocHandleMoveErrorCaption,Messages.DocHandleMoveError);
-									}
-								}
-							}
-							
-							break;
-						}
-					}
-				}
-			} catch (Throwable throwable) {
-				ExHandler.handle(throwable);
-				SWTHelper.showError(Messages.DocHandle_MoveErrorCaption,
-					Messages.DocHandle_MoveError);
-			}
+			applyRenameRules(dh, file);
 		}
 		return dh;
 	}
-	
+
+	private static void applyRenameRules(DocHandle dh, File file){
+		try {
+			for (Integer i = 0; i < Preferences.getOmnivorenRulesForAutoArchiving(); i++) {
+				String SrcPattern = Preferences.getOmnivoreRuleForAutoArchivingSrcPattern(i);
+				String DestDir = Preferences.getOmnivoreRuleForAutoArchivingDestDir(i);
+				if ((SrcPattern != null) && (DestDir != null)
+					&& ((SrcPattern != "" || DestDir != ""))) {
+					if (file.getAbsolutePath().contains(SrcPattern)) {
+						log.debug("SrcPattern found in file.getAbsolutePath() pos {} found {}", i, file.getAbsolutePath().contains(SrcPattern));
+						if (DestDir == "") {
+							log.debug(
+								"DestDir is empty. No more rules will be evaluated for this file. Returning.");
+						}
+						File newFile = new File(DestDir);
+						if (newFile.isDirectory()) {
+							newFile = new File(DestDir + File.separatorChar + file.getName());
+						}
+						
+						if (newFile.isDirectory()) {
+							log.debug("new File {} is a directory ; renaming not attempted",newFile.getAbsolutePath());
+							SWTHelper.showError(Messages.DocHandle_MoveErrorCaption,
+								MessageFormat.format(Messages.DocHandle_MoveErrorDestIsDir,
+									DestDir, file.getName()));
+						} else {
+							if (newFile.isFile()) {
+								log.debug("new File {} already exits ; renaming not attempted",newFile.getAbsolutePath());
+								SWTHelper.showError(Messages.DocHandle_MoveErrorCaption,
+									MessageFormat.format(Messages.DocHandle_MoveErrorDestIsFile,
+										DestDir, file.getName()));
+							} else {
+								if (Files.move(file.toPath(), newFile.toPath(),
+									REPLACE_EXISTING) != null) {
+									log.debug(
+										"Succeeded renaming incoming file {} to: {}", file.getAbsolutePath(), newFile.getAbsolutePath());
+								} else {
+									log.debug(
+										"Failed renaming incoming file {} to: {}", file.getAbsolutePath(), newFile.getAbsolutePath());
+									// SWTHelper.showError(Messages.DocHandleMoveErrorCaption,Messages.DocHandleMoveError);
+								}
+							}
+						}
+					}
+				}
+			}
+		} catch (Throwable throwable) {
+			ExHandler.handle(throwable);
+			SWTHelper.showError(Messages.DocHandle_MoveErrorCaption,
+				Messages.DocHandle_MoveError);
+		}
+	}
+
 	private void configError(){
 		SWTHelper.showError("config error", Messages.DocHandle_configErrorCaption, //$NON-NLS-1$
 			Messages.DocHandle_configErrorText);
