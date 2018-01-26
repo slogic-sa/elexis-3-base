@@ -14,7 +14,6 @@ package ch.elexis.omnivore.data;
 
 import static ch.elexis.omnivore.Constants.CATEGORY_MIMETYPE;
 import static ch.elexis.omnivore.Constants.DEFAULT_CATEGORY;
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -27,6 +26,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -419,7 +419,6 @@ public class DocHandle extends PersistentObject implements IOpaqueDocument {
 		}
 		return null;
 	}
-	
 	public String getCategoryName(){
 		return checkNull(get(FLD_CAT));
 	}
@@ -529,7 +528,8 @@ public class DocHandle extends PersistentObject implements IOpaqueDocument {
 		try {
 			String ext = StringConstants.SPACE; //""; //$NON-NLS-1$
 			File temp = createTemporaryFile(null);
-			
+			log.debug("execute {} readable {}", temp.getAbsolutePath(), Files.isReadable(temp.toPath()));
+
 			Program proggie = Program.findProgram(ext);
 			if (proggie != null) {
 				proggie.execute(temp.getAbsolutePath());
@@ -565,23 +565,12 @@ public class DocHandle extends PersistentObject implements IOpaqueDocument {
 		
 		// use title if given
 		StringBuffer config_temp_filename = new StringBuffer();
-		if (title != null && !title.isEmpty()) {
-			config_temp_filename.append(title);
-		}
-		
+		config_temp_filename.append(Utils.createNiceFileName(this));
+
 		File temp = null;
 		try {
 			if (config_temp_filename.length() > 0) {
-				File uniquetemp =
-					File.createTempFile(config_temp_filename.toString() + "_", "." + ext); //$NON-NLS-1$ //$NON-NLS-2$
-				
-				String temp_pathname = uniquetemp.getParent();
-				uniquetemp.delete();
-				
-				log.debug(temp_pathname);
-				log.debug(config_temp_filename + "." + ext);
-				
-				temp = new File(temp_pathname, config_temp_filename + "." + ext);
+				temp = new File(config_temp_filename + "." + ext);
 				temp.createNewFile();
 				
 			} else {
@@ -598,6 +587,7 @@ public class DocHandle extends PersistentObject implements IOpaqueDocument {
 			try (FileOutputStream fos = new FileOutputStream(temp)) {
 				fos.write(b);
 			}
+			log.debug("createTemporaryFile {} size {}", temp.getAbsolutePath(), Files.size(temp.toPath()));
 		} catch (FileNotFoundException e) {
 			log.debug("File not found " + e, Log.WARNINGS);
 		} catch (IOException e) {
@@ -661,6 +651,7 @@ public class DocHandle extends PersistentObject implements IOpaqueDocument {
 				DocHandle docHandle = new DocHandle(fid.category, baos.toByteArray(),
 					ElexisEventDispatcher.getSelectedPatient(), fid.originDate, fid.title,
 					"image.pdf", fid.keywords); //$NON-NLS-1$
+				Utils.archiveFile(docHandle.getStorageFile(true));
 				ret.add(docHandle);
 			} catch (Exception ex) {
 				ExHandler.handle(ex);
@@ -716,8 +707,6 @@ public class DocHandle extends PersistentObject implements IOpaqueDocument {
 					dh.setDate(fid.saveDate);
 					dh.setCreationDate(fid.originDate);
 				}
-				baos.close();
-				applyRenameRules(dh, file);
 				return dh;
 			} catch (Exception ex) {
 				ExHandler.handle(ex);
@@ -787,66 +776,15 @@ public class DocHandle extends PersistentObject implements IOpaqueDocument {
 				}
 				dh = new DocHandle(category, baos.toByteArray(), act, fid.title.trim(),
 					file.getName(), fid.keywords.trim());
+				Utils.archiveFile(file);
 			} catch (Exception ex) {
 				ExHandler.handle(ex);
 				SWTHelper.showError(Messages.DocHandle_importErrorCaption,
 					Messages.DocHandle_importErrorMessage2);
 				return null;
 			}
-			applyRenameRules(dh, file);
 		}
 		return dh;
-	}
-
-	private static void applyRenameRules(DocHandle dh, File file){
-		try {
-			for (Integer i = 0; i < Preferences.getOmnivorenRulesForAutoArchiving(); i++) {
-				String SrcPattern = Preferences.getOmnivoreRuleForAutoArchivingSrcPattern(i);
-				String DestDir = Preferences.getOmnivoreRuleForAutoArchivingDestDir(i);
-				if ((SrcPattern != null) && (DestDir != null)
-					&& ((SrcPattern != "" || DestDir != ""))) {
-					if (file.getAbsolutePath().contains(SrcPattern)) {
-						log.debug("SrcPattern found in file.getAbsolutePath() pos {} found {}", i, file.getAbsolutePath().contains(SrcPattern));
-						if (DestDir == "") {
-							log.debug(
-								"DestDir is empty. No more rules will be evaluated for this file. Returning.");
-						}
-						File newFile = new File(DestDir);
-						if (newFile.isDirectory()) {
-							newFile = new File(DestDir + File.separatorChar + file.getName());
-						}
-						
-						if (newFile.isDirectory()) {
-							log.debug("new File {} is a directory ; renaming not attempted",newFile.getAbsolutePath());
-							SWTHelper.showError(Messages.DocHandle_MoveErrorCaption,
-								MessageFormat.format(Messages.DocHandle_MoveErrorDestIsDir,
-									DestDir, file.getName()));
-						} else {
-							if (newFile.isFile()) {
-								log.debug("new File {} already exits ; renaming not attempted",newFile.getAbsolutePath());
-								SWTHelper.showError(Messages.DocHandle_MoveErrorCaption,
-									MessageFormat.format(Messages.DocHandle_MoveErrorDestIsFile,
-										DestDir, file.getName()));
-							} else {
-								if (Files.move(file.toPath(), newFile.toPath(),
-									REPLACE_EXISTING) != null) {
-									log.debug(
-										"Succeeded renaming incoming file {} to: {}", file.getAbsolutePath(), newFile.getAbsolutePath());
-								} else {
-									log.debug(
-										"Failed renaming incoming file {} to: {}", file.getAbsolutePath(), newFile.getAbsolutePath());
-									// SWTHelper.showError(Messages.DocHandleMoveErrorCaption,Messages.DocHandleMoveError);
-								}
-							}
-						}
-					}
-				}
-			}
-		} catch (Throwable throwable) {
-			ExHandler.handle(throwable);
-			SWTHelper.showError(Messages.DocHandle_MoveErrorCaption,
-				Messages.DocHandle_MoveError);
-		}
 	}
 
 	private void configError(){
