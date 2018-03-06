@@ -47,13 +47,14 @@ import ch.rgw.tools.JdbcLink;
 public class Test_Utils{
 	private static Logger log = LoggerFactory.getLogger(Test_Utils.class);
 	private static IPreferenceStore preferenceStore = new SettingsPreferenceStore(CoreHub.localCfg);
-	ArrayList<Path> archiveDestPaths = new ArrayList<Path>();
-	ArrayList<String> archiveSrcPattern = new ArrayList<String>();
+	static ArrayList<Path> archiveDestPaths = new ArrayList<Path>();
+	static ArrayList<String> archiveSrcPattern = new ArrayList<String>();
 	public Test_Utils(){}
 	
 	@BeforeClass
 	public static void setUpClass(){
 		log.debug("testImportFirst getLink {}", AbstractPersistentObjectTest.getLink());
+		setArchivePreferences();
 	}
 
 	private void setCotfLength(int len) {
@@ -72,7 +73,7 @@ public class Test_Utils{
 		}
 	}
 	
-	private void setArchivePreferences() {
+	private static void setArchivePreferences() {
 		String tmpDir = System.getProperty("java.io.tmpdir");
 		Path basePath = new File(tmpDir + "/omnivore/test/basepath").toPath();
 		preferenceStore.setValue(BASEPATH, tmpDir + "/omnivore/test/basepath");
