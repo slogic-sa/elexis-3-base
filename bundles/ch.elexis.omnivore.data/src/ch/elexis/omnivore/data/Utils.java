@@ -256,8 +256,6 @@ public class Utils {
 		tmp.append(getFileElement("random",new BigInteger(needed_bits , random).toString() ));
 		
 		tmp.append(getFileElement("constant2",""));
-		String tmpDir = System.getProperty("java.io.tmpdir"); //$NON-NLS-1$
-		File file = new File(tmpDir + File.separator + tmp.toString());
-		return file.toString();
+		return tmp.toString();
 	}
 }

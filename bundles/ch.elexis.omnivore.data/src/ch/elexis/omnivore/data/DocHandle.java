@@ -26,7 +26,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -575,24 +574,12 @@ public class DocHandle extends PersistentObject implements IOpaqueDocument {
 			fileExtension = "";
 		}
 		
-		// use title if given
-		StringBuffer config_temp_filename = new StringBuffer();
-		config_temp_filename.append(Utils.createNiceFileName(this));
-
+		String config_temp_filename = Utils.createNiceFileName(this);
 		File temp = null;
 		try {
 			if (config_temp_filename.length() > 0) {
-				File uniquetemp =
-					File.createTempFile(config_temp_filename.toString() + "_", "." + fileExtension); //$NON-NLS-1$ //$NON-NLS-2$
-				
-				String temp_pathname = uniquetemp.getParent();
-				uniquetemp.delete();
-				
-				log.debug(temp_pathname);
-				log.debug(config_temp_filename + "." + fileExtension);
-				
-				temp = new File(temp_pathname, config_temp_filename + "." + fileExtension);
-				temp.createNewFile();
+				String tmpDir = System.getProperty("java.io.tmpdir");
+				temp = new File(tmpDir, config_temp_filename + "." + fileExtension);
 				
 			} else {
 				temp = File.createTempFile("omni_", "_vore." + fileExtension);
@@ -608,7 +595,7 @@ public class DocHandle extends PersistentObject implements IOpaqueDocument {
 			try (FileOutputStream fos = new FileOutputStream(temp)) {
 				fos.write(b);
 			}
-			log.debug("createTemporaryFile {} size {}", temp.getAbsolutePath(), Files.size(temp.toPath()));
+			log.debug("createTemporaryFile {} size {} ext {} ", temp.getAbsolutePath(), Files.size(temp.toPath()), fileExtension);
 		} catch (FileNotFoundException e) {
 			log.debug("File not found " + e, Log.WARNINGS);
 		} catch (IOException e) {

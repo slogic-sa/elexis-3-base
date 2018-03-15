@@ -122,9 +122,23 @@ public class Test_Utils{
 		String result = Utils.createNiceFileName(dh);
 		// We cannot test the random here
 		Assert.assertThat(result, endsWith("_ENDE"));
-		Assert.assertThat(result, containsString(File.separator+"ANFANG_"));
+		Assert.assertThat(result, startsWith("ANFANG_"));
 		Assert.assertThat(result, containsString("----1YMustXErikY01.0XtitlYkeywX"));
 		
+	}
+	@Test
+	public void testCreateTemporaryFile(){
+		Patient female = new Patient("Musterfrau", "Marianne", "1.1.2000", "f");
+		DocHandle dh = new DocHandle("category", new byte[] {
+			1, 2, 3
+		}, female, "title", "mime", "keyword");
+
+		File f = dh.createTemporaryFile("dummy");
+		Assert.assertTrue(f.exists());
+		Assert.assertThat(f.getName(), startsWith("ANFANG_"));
+		Assert.assertEquals(3, f.length());
+		Assert.assertThat(f.getName(), containsString("YMustXMariY01.0XtitlYkeywX"));
+		Assert.assertThat(f.getName(), endsWith("_ENDE."));
 	}
 	@Test
 	public void testRemoveUnwanted(){
@@ -140,8 +154,8 @@ public class Test_Utils{
 		Assert.assertEquals(toBeStripped, male.getName());
 		Assert.assertFalse(result.contains(toBeStripped));
 		Assert.assertThat(result, endsWith("_ENDE"));
-		Assert.assertThat(result, containsString(File.separator+"ANFANG_"));
-		Assert.assertThat(result, containsString(File.separator+"ANFANG_-------2YABCDErFXBABCDErY31.12.1XDr. hc.YStichwoX"));
+		Assert.assertThat(result, containsString("ANFANG_"));
+		Assert.assertThat(result, containsString("ANFANG_-------3YABCDErFXBABCDErY31.12.1XDr. hc.YStichwoX"));
 	}
 	@Test
 	public void testArchiveFile(){

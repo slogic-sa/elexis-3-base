@@ -407,7 +407,7 @@ public class OmnivoreView extends ViewPart implements IActivationListener {
 				if (FileTransfer.getInstance().isSupportedType(event.dataType)) {
 					File file = dh.createTemporaryFile(dh.getTitle());
 					event.data = new String[] {
-						file.toURI().toString()
+						file.getAbsolutePath()
 					};
 					log.debug("dragSetData; isSupportedType {} data {}", file.getAbsolutePath(), event.data); //$NON-NLS-1$
 				} else {
