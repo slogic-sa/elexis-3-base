@@ -35,11 +35,13 @@ public class Utils {
 
 	static public File archiveFile(File file){
 		File newFile = null;
+		String SrcPattern = null;
+		String DestDir = null;
 
 		try {
 			for (Integer i = 0; i < Preferences.getOmnivorenRulesForAutoArchiving(); i++) {
-				String SrcPattern = Preferences.getOmnivoreRuleForAutoArchivingSrcPattern(i);
-				String DestDir = Preferences.getOmnivoreRuleForAutoArchivingDestDir(i);
+				SrcPattern = Preferences.getOmnivoreRuleForAutoArchivingSrcPattern(i);
+				DestDir = Preferences.getOmnivoreRuleForAutoArchivingDestDir(i);
 				if ((SrcPattern != null) && (DestDir != null)
 					&& ((SrcPattern != "" || DestDir != ""))) {
 					if (file.getAbsolutePath().contains(SrcPattern)) {
@@ -67,6 +69,9 @@ public class Utils {
 										DestDir, file.getName()));
 								return null;
 							} else {
+								log.debug(
+									"Will move file {} {} to: {} {}", file.getAbsolutePath(), file.exists() ,
+									newFile.getAbsolutePath(), newFile.exists());
 								if (Files.move(file.toPath(), newFile.toPath(),
 									REPLACE_EXISTING) != null) {
 									log.debug(
@@ -74,7 +79,7 @@ public class Utils {
 								} else {
 									log.debug(
 										"Failed archiveFile incoming file {} to: {}", file.getAbsolutePath(), newFile.getAbsolutePath());
-									// SWTHelper.showError(Messages.DocHandleMoveErrorCaption,Messages.DocHandleMoveError);
+									// SWTHelper.showError(Messages.DocHandle_MoveErrorCaption,Messages.DocHandle_MoveError);
 									return null;
 								}
 							}
@@ -84,6 +89,15 @@ public class Utils {
 			}
 		} catch (Throwable throwable) {
 			ExHandler.handle(throwable);
+			if (file != null && newFile != null) {
+				log.debug(
+					"Exception while moving file {} {} to: {} {}", file.getAbsolutePath(), file.exists() ,
+					newFile.getAbsolutePath(), newFile.exists());
+			} else {
+				log.debug(
+					"Exception while moving file {} {} src {} dest {}", file.getAbsolutePath(), file.exists() ,
+					SrcPattern, DestDir);
+			}
 			SWTHelper.showError(Messages.DocHandle_MoveErrorCaption,
 				Messages.DocHandle_MoveError);
 			return null;
