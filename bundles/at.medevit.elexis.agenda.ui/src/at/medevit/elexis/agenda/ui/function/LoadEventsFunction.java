@@ -86,10 +86,10 @@ public class LoadEventsFunction extends AbstractBrowserFunction {
 		}
 	}
 	
-	public LoadEventsFunction(Browser browser, String name){
+	public LoadEventsFunction(Browser browser, String name, ScriptingHelper scriptingHelper){
 		super(browser, name);
 		gson = new GsonBuilder().create();
-		scriptingHelper = new ScriptingHelper(browser);
+		this.scriptingHelper = scriptingHelper;
 		
 		cache = CacheBuilder.newBuilder().maximumSize(7).build(new TimeSpanLoader());
 	}
@@ -142,7 +142,6 @@ public class LoadEventsFunction extends AbstractBrowserFunction {
 		
 		@Override
 		public List<Event> load(TimeSpan key) throws Exception{
-			System.out.println("LOADING ...");
 			List<IPeriod> periods = getPeriods(key.startDate, key.endDate);
 			return periods.parallelStream().map(p -> Event.of(p)).collect(Collectors.toList());
 		}

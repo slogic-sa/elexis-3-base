@@ -18,12 +18,12 @@
           <useUIHarness>false</useUIHarness>
           <application>ch.elexis.core.application.ElexisApp</application>
           <useUIThread>false</useUIThread>
-          <argLine>-DjdbcLink=org.h2.Driver:mem:mem_test;AUTO_SERVER=TRUE -Dch.elexis.username=007 -Dch.elexis.password=topsecret -Delexis-run-mode=RunFromScratch</argLine>
+          <argLine>-Dch.elexis.username=007 -Dch.elexis.password=topsecret -Delexis-run-mode=RunFromScratch</argLine>
           <showEclipseLog>${show.eclipse.log}</showEclipseLog>
           <dependencies>
             <dependency>
               <type>eclipse-feature</type>
-              <artifactId>ch.elexis.core.ui.feature</artifactId>
+              <artifactId>ch.elexis.core.application.feature</artifactId>
               <version>0.0.0</version>
             </dependency>
           </dependencies>
