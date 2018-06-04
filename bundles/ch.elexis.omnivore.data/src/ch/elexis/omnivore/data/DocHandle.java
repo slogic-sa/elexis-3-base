@@ -693,12 +693,17 @@ public class DocHandle extends PersistentObject implements IOpaqueDocument {
 		
 		FileImportDialog fid = new FileImportDialog(file.getName());
 		if (fid.open() == Dialog.OK) {
-			try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
-					ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
+			try {
+				BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
 				int in;
+				int estimated_size = bis.available();
 				while ((in = bis.read()) != -1) {
 					baos.write(in);
 				}
+				bis.close();
+				baos.close();
+				log.debug("Import Okay. Copying {} byte from {}", estimated_size, file);
 				String nam = file.getName();
 				if (nam.length() > 255) {
 					SWTHelper.showError(Messages.DocHandle_readErrorCaption3,
@@ -764,13 +769,16 @@ public class DocHandle extends PersistentObject implements IOpaqueDocument {
 		
 		DocHandle dh = null;
 		if (fid.open() == Dialog.OK) {
-			try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
-					ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+			try {
+				BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
 				
 				int in;
 				while ((in = bis.read()) != -1) {
 					baos.write(in);
 				}
+				bis.close();
+				baos.close();
 				
 				String fileName = file.getName();
 				if (fileName.length() > 255) {
