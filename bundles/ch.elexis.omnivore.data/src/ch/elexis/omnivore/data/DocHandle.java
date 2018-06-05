@@ -784,13 +784,13 @@ public class DocHandle extends PersistentObject implements IOpaqueDocument {
 				}
 				dh = new DocHandle(category, baos.toByteArray(), act, fid.title.trim(),
 					file.getName(), fid.keywords.trim());
-				Utils.archiveFile(file);
 			} catch (Exception ex) {
 				ExHandler.handle(ex);
 				SWTHelper.showError(Messages.DocHandle_importErrorCaption,
 					Messages.DocHandle_importErrorMessage2);
 				return null;
 			}
+			Utils.archiveFile(file);
 		}
 		return dh;
 	}
