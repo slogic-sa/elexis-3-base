@@ -11,11 +11,7 @@ package ch.medshare.elexis.directories.views;
 
 import org.eclipse.osgi.util.NLS;
 
-
-import org.eclipse.osgi.util.NLS;
 public class Messages extends NLS {
-  public static final String BUNDLE_NAME = "ch.medshare.elexis_directories.messages";
-
 	private static final String BUNDLE_NAME = "ch.medshare.elexis.directories.views.messages"; //$NON-NLS-1$
 	public static String WeisseSeitenSearchForm_btn_Suchen;
 	public static String WeisseSeitenSearchForm_label_Ort;
@@ -32,14 +28,7 @@ public class Messages extends NLS {
 	public static String WeisseSeitenSearchView_tooltip_newPatient;
 	static { // load message values from bundle file
 		NLS.initializeMessages(BUNDLE_NAME, Messages.class);
-	  static { // load message values from bundle file
-    NLS.initializeMessages(BUNDLE_NAME, Messages.class);
-  }
-
-  private Messages() {
-  }
-}
-
+	}
 	
 	private Messages(){}
 }

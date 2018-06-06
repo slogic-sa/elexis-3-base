@@ -59,7 +59,6 @@ public final class Messages extends NLS {
 	public static String PATIENTS_PROFITS_HEADING_COSTS;
 	public static String PATIENTS_PROFITS_HEADING_INCOME;
 	public static String PATIENTS_PROFITS_HEADING_PROFIT;
-	public static String PATIENTS_PROFITS_ONLY_FOR_MANDAT;
 	public static String PRESCRIPTIONS_OVERVIEW_TITLE;
 	public static String PRESCRIPTIONS_OVERVIEW_DESCRIPTION;
 	public static String PRESCRIPTIONS_OVERVIEW_HEADING_NAME;
