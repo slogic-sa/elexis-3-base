@@ -12,7 +12,7 @@ package ch.elexis.base.ch.ebanking;
 import org.eclipse.osgi.util.NLS;
 
 public class Messages extends NLS {
-  private static final String BUNDLE_NAME = "ch.elexis.base.ch.ebanking.messages";
+  private static final String BUNDLE_NAME = "ch.elexis.base.ch.ebanking.messages"; //$NON-NLS-1$
     public static String ESRFile_ExceptionParsing;
     public static String ESRFile_cannot_read_esr;
     public static String ESRFile_esrfile_not_founde;

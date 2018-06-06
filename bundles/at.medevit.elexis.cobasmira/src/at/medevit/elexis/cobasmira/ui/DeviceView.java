@@ -22,7 +22,6 @@ import at.medevit.elexis.cobasmira.connection.CobasMiraConnection;
 import at.medevit.elexis.cobasmira.model.CobasMiraLog;
 import at.medevit.elexis.cobasmira.model.CobasMiraMapping;
 import at.medevit.elexis.cobasmira.model.CobasMiraMessage;
-import at.medevit.elexis.cobasmira.Messages;
 import ch.elexis.data.Anwender;
 
 public class DeviceView extends ViewPart {
@@ -63,22 +62,22 @@ public class DeviceView extends ViewPart {
 		
 		TableViewerColumn tableViewerColumn = new TableViewerColumn(tableViewer, SWT.NONE);
 		tableZeit = tableViewerColumn.getColumn();
-		tableZeit.setText(Messages.UI_dateTime);
+		tableZeit.setText(Messages.getString("UI.dateTime"));
 		tableColumnLayout.setColumnData(tableZeit, new ColumnPixelData(120));
 		
 		TableViewerColumn tableViewerColumn_1 = new TableViewerColumn(tableViewer, SWT.NONE);
 		TableColumn tblclmnTyp = tableViewerColumn_1.getColumn();
-		tblclmnTyp.setText(Messages.UI_type);
+		tblclmnTyp.setText(Messages.getString("UI.type"));
 		tableColumnLayout.setColumnData(tblclmnTyp, new ColumnPixelData(100));
 		
 		TableViewerColumn tableViewerColumn_2 = new TableViewerColumn(tableViewer, SWT.NONE);
 		TableColumn tblclmnLogeintrag = tableViewerColumn_2.getColumn();
-		tblclmnLogeintrag.setText(Messages.UI_description);
+		tblclmnLogeintrag.setText(Messages.getString("UI.description"));
 		tableColumnLayout.setColumnData(tblclmnLogeintrag, new ColumnWeightData(50, 200));
 		
 		TableViewerColumn tableViewerColumn_3 = new TableViewerColumn(tableViewer, SWT.NONE);
 		TableColumn tblclmnElexisstatus = tableViewerColumn_3.getColumn();
-		tblclmnElexisstatus.setText(Messages.UI_elexis_state);
+		tblclmnElexisstatus.setText(Messages.getString("UI.elexis-state"));
 		tableColumnLayout.setColumnData(tblclmnElexisstatus, new ColumnWeightData(10, 100));
 		
 		tableViewer.setComparator(new CobasMiraLogTableSorter());
@@ -120,9 +119,9 @@ public class DeviceView extends ViewPart {
 			new TableViewerColumn(tableViewerCMM, SWT.NONE);
 		TableColumn tblclmnNoKommastellen = tableViewerColumnNoKommastellen.getColumn();
 		tblclmnNoKommastellen
-			.setToolTipText(Messages.DeviceView_tblclmnNoKommastellen_toolTipText); //$NON-NLS-1$
+			.setToolTipText(Messages.getString("DeviceView.tblclmnNoKommastellen.toolTipText")); //$NON-NLS-1$
 		tblclmnNoKommastellen.setWidth(70);
-		tblclmnNoKommastellen.setText(Messages.DeviceView_tblclmnNoKommastellen_text); //$NON-NLS-1$
+		tblclmnNoKommastellen.setText(Messages.getString("DeviceView.tblclmnNoKommastellen.text")); //$NON-NLS-1$
 		
 		TableViewerColumn tableViewerColumnReferenzM =
 			new TableViewerColumn(tableViewerCMM, SWT.NONE);

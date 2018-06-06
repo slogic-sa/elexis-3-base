@@ -12,7 +12,7 @@ package ch.unibe.iam.scg.archie;
 import org.eclipse.osgi.util.NLS;
 
 public class Messages extends NLS {
-  private static final String BUNDLE_NAME = "ch.unibe.iam.scg.archie.messages";
+  private static final String BUNDLE_NAME = "ch.unibe.iam.scg.archie.messages"; //$NON-NLS-1$
     public static String ACL_ACCESS;
     public static String ACL_ACCESS_DENIED;
     public static String ACTION_EXPORT_DESCRIPTION;

@@ -12,7 +12,7 @@ package com.hilotec.elexis.messwerte.v2;
 import org.eclipse.osgi.util.NLS;
 
 public class Messages extends NLS {
-  private static final String BUNDLE_NAME = "com.hilotec.elexis.messwerte.v2.messages";
+  private static final String BUNDLE_NAME = "com.hilotec.elexis.messwerte.v2.messages"; //$NON-NLS-1$
     public static String DBError;
     public static String DBErrorTable;
     public static String DataAccessor_DataDescription;

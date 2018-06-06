@@ -353,12 +353,13 @@ public class UtilFile {
 		File dir = new File(path);
 		if (dir.exists()) {
 			if (!dir.isDirectory()) {
-				throw new IllegalArgumentException(Messages.UtilFile_error_msg_invalidPath, null);
+				throw new IllegalArgumentException(Messages
+					.getString("UtilFile.error.msg.invalidPath"), null); //$NON-NLS-1$
 			}
 		} else {
 			if (!dir.mkdirs()) {
 				String msg =
-					MessageFormat.format(Messages.UtilFile_error_msg_creationFailed,
+					MessageFormat.format(Messages.getString("UtilFile.error.msg.creationFailed"), //$NON-NLS-1$
 						new Object[] {
 							path
 						});

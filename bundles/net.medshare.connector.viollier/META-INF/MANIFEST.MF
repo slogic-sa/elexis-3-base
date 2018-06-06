@@ -11,8 +11,7 @@ Require-Bundle: org.eclipse.ui,
  ch.rgw.utility;bundle-version="3.0.0",
  ch.elexis.laborimport.viollier.v2,
  org.apache.httpcomponents.httpclient;bundle-version="4.1.3",
- org.apache.httpcomponents.httpcore;bundle-version="4.1.4",
- ch.elexis.base.l10n;bundle-version="3.5.0"
+ org.apache.httpcomponents.httpcore;bundle-version="4.1.4"
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Bundle-Vendor: medshare.net

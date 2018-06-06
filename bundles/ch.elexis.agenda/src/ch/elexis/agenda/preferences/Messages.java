@@ -15,10 +15,17 @@ package ch.elexis.agenda.preferences;
 import org.eclipse.osgi.util.NLS;
 
 public class Messages extends NLS {
-	public static String  AgendaDruck_printDirectly = ch.elexis.base.l10n.Messages.AgendaDruck_printDirectly;
-	public static String  AgendaDruck_printerForCards = ch.elexis.base.l10n.Messages.AgendaDruck_printerForCards;
-	public static String  AgendaDruck_settingsForPrint = ch.elexis.base.l10n.Messages.AgendaDruck_settingsForPrint;
-	public static String  AgendaDruck_templateForCards = ch.elexis.base.l10n.Messages.AgendaDruck_templateForCards;
-	public static String  AgendaDruck_TrayForCards = ch.elexis.base.l10n.Messages.AgendaDruck_TrayForCards;
-	public static String  PreferenceConstants_appointmentCard = ch.elexis.base.l10n.Messages.PreferenceConstants_appointmentCard;
+	private static final String BUNDLE_NAME = "ch.elexis.agenda.preferences.messages"; //$NON-NLS-1$
+	public static String AgendaDruck_printDirectly;
+	public static String AgendaDruck_printerForCards;
+	public static String AgendaDruck_settingsForPrint;
+	public static String AgendaDruck_templateForCards;
+	public static String AgendaDruck_TrayForCards;
+	public static String PreferenceConstants_appointmentCard;
+	static {
+		// initialize resource bundle
+		NLS.initializeMessages(BUNDLE_NAME, Messages.class);
+	}
+	
+	private Messages(){}
 }

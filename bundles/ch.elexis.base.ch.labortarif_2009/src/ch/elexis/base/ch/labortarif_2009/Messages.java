@@ -12,7 +12,7 @@ package ch.elexis.base.ch.labortarif_2009;
 import org.eclipse.osgi.util.NLS;
 
 public class Messages extends NLS {
-  private static final String BUNDLE_NAME = "ch.elexis.base.ch.labortarif_2009.messages";
+  private static final String BUNDLE_NAME = "ch.elexis.base.ch.labortarif_2009.messages"; //$NON-NLS-1$
     public static String DetailDisplay_chapter;
     public static String DetailDisplay_code;
     public static String DetailDisplay_fachbereich;
