@@ -47,12 +47,6 @@ public class Messages extends NLS {
 	public static String DocHandle_MoveErrorDestIsFile;
 	public static String DocHandle_importErrorMessage;
 	public static String DocHandle_MoveError;
-	
-	static {
-		// initialize resource bundle
-		NLS.initializeMessages(BUNDLE_NAME, Messages.class);
-	}
-
 	public static String Preferences_cotf_add_trail_char;
 	public static String Preferences_cotf_constant1;
 	public static String Preferences_cotf_constant2;
@@ -77,5 +71,10 @@ public class Messages extends NLS {
 	public static String Preferences_automatic_archiving_of_processed_files;
 	public static String Preferences_omnivore;
 	
+	static {
+		// initialize resource bundle
+		NLS.initializeMessages(BUNDLE_NAME, Messages.class);
+	}
+
 	private Messages(){}
 }
