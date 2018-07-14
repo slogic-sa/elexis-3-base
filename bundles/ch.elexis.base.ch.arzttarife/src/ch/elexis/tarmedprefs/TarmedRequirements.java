@@ -34,7 +34,6 @@ import ch.rgw.tools.StringTool;
 
 public class TarmedRequirements {
 	
-	public static final String INSURANCE = Messages.TarmedRequirements_KostentraegerName;
 	public static final String INSURANCE_NUMBER = Messages.TarmedRequirements_InsuranceNumberName; 
 	public static final String CASE_NUMBER = Messages.TarmedRequirements_CaseNumberName;
 	public static final String INTERMEDIATE = Messages.TarmedRequirements_IntermediateName;
@@ -225,18 +224,9 @@ public class TarmedRequirements {
 	}
 	
 	public static String getGesetz(final Fall fall){
-		String billingSystem = fall.getAbrechnungsSystem();
-		if (StringTool.isNothing(billingSystem)) {
-			billingSystem = Fall.getAbrechnungsSysteme()[0];
-		}
-		String gesetz = fall.getRequiredString("Gesetz"); //$NON-NLS-1$
-		if (gesetz.length() == 0) {
-			gesetz = Fall.getBillingSystemConstant(billingSystem, CASE_LAW);
-		}
-		if (gesetz.length() == 0) { // compatibility. To be removed
-			gesetz = Fall.getBillingSystemAttribute(billingSystem, "gesetz"); //$NON-NLS-1$
-		}
+		String billingSystem = fall.getConfiguredBillingSystemLaw().name();
 		String language = System.getProperty("osgi.nl").toLowerCase();
+		String gesetz = null;
 		language = language.substring(0, language.indexOf("_"));
 		if (language.equals("fr")) {
 		      // Use a hash map to convert french names to the one needed in the XML

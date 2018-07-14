@@ -12,6 +12,8 @@
 
 package ch.elexis.omnivore.ui.views;
 
+import static ch.elexis.omnivore.Constants.CATEGORY_MIMETYPE;
+
 import java.io.File;
 import java.text.MessageFormat;
 import java.util.LinkedList;
@@ -25,6 +27,7 @@ import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.InputDialog;
 import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.DoubleClickEvent;
 import org.eclipse.jface.viewers.IDoubleClickListener;
 import org.eclipse.jface.viewers.ISelection;
@@ -60,24 +63,29 @@ import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
 import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.ISharedImages;
+import org.eclipse.ui.IWorkbenchPartReference;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.dialogs.ListDialog;
 import org.eclipse.ui.part.ViewPart;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ch.elexis.admin.AccessControlDefaults;
 import ch.elexis.core.constants.StringConstants;
 import ch.elexis.core.data.activator.CoreHub;
 import ch.elexis.core.data.events.ElexisEvent;
 import ch.elexis.core.data.events.ElexisEventDispatcher;
-import ch.elexis.core.ui.actions.GlobalEventDispatcher;
-import ch.elexis.core.ui.actions.IActivationListener;
 import ch.elexis.core.ui.actions.RestrictedAction;
 import ch.elexis.core.ui.events.ElexisUiEventListenerImpl;
+import ch.elexis.core.ui.events.RefreshingPartListener;
 import ch.elexis.core.ui.icons.Images;
 import ch.elexis.core.ui.locks.AcquireLockBlockingUi;
 import ch.elexis.core.ui.locks.ILockHandler;
 import ch.elexis.core.ui.locks.LockRequestingRestrictedAction;
 import ch.elexis.core.ui.util.SWTHelper;
+import ch.elexis.core.ui.util.viewers.DefaultLabelProvider;
+import ch.elexis.core.ui.views.IRefreshable;
 import ch.elexis.data.Anwender;
 import ch.elexis.data.Patient;
 import ch.elexis.data.PersistentObject;
@@ -91,7 +99,7 @@ import ch.elexis.omnivore.ui.preferences.PreferencePage;
  * the selected patient. On double-click they are opened with their associated application.
  */
 
-public class OmnivoreView extends ViewPart implements IActivationListener {
+public class OmnivoreView extends ViewPart implements IRefreshable {
 	private TreeViewer viewer;
 	private Tree table;
 	RestrictedAction editAction, deleteAction, importAction;
@@ -111,17 +119,34 @@ public class OmnivoreView extends ViewPart implements IActivationListener {
 	private String searchTitle = "";
 	private String searchKW = "";
 	// ISource selectedSource = null;
+	static Logger log = LoggerFactory.getLogger(OmnivoreView.class);
 	
 	private OmnivoreViewerComparator ovComparator;
+	
+	private Patient actPatient;
+	
+	private RefreshingPartListener udpateOnVisible = new RefreshingPartListener(this) {
+		@Override
+		public void partDeactivated(IWorkbenchPartReference partRef){
+			if(isMatchingPart(partRef)) {
+				saveColumnWidthSettings();
+				saveSortSettings();
+			}
+		}
+	};
 	
 	private final ElexisUiEventListenerImpl eeli_pat = new ElexisUiEventListenerImpl(Patient.class,
 		ElexisEvent.EVENT_SELECTED) {
 		
 		@Override
 		public void runInUi(ElexisEvent ev){
-			viewer.refresh();
+			if(isActiveControl(table)) {
+				if(actPatient != ev.getObject()) {
+					viewer.refresh();
+					actPatient = (Patient) ev.getObject();
+				}
+			}
 		}
-		
 	};
 	
 	private final ElexisUiEventListenerImpl eeli_user = new ElexisUiEventListenerImpl(
@@ -141,9 +166,10 @@ public class OmnivoreView extends ViewPart implements IActivationListener {
 			| ElexisEvent.EVENT_UPDATE) {
 		@Override
 		public void runInUi(ElexisEvent ev){
-			viewer.refresh();
+			if(isActiveControl(table)) {
+				viewer.refresh();
+			}
 		}
-		
 	};
 	
 	class ViewContentProvider implements ITreeContentProvider {
@@ -401,27 +427,24 @@ public class OmnivoreView extends ViewPart implements IActivationListener {
 				IStructuredSelection selection = (IStructuredSelection) viewer.getSelection();
 				DocHandle dh = (DocHandle) selection.getFirstElement();
 				if (FileTransfer.getInstance().isSupportedType(event.dataType)) {
-					String title = dh.getTitle();
-					int end = dh.getTitle().lastIndexOf(".");
-					if (end != -1) {
-						title = (dh.getTitle()).substring(0, end);
-					}
-					File file = dh.createTemporaryFile(title);
+					File file = dh.createTemporaryFile(dh.getTitle());
 					event.data = new String[] {
 						file.getAbsolutePath()
 					};
+					log.debug("dragSetData; isSupportedType {} data {}", file.getAbsolutePath(), event.data); //$NON-NLS-1$
 				} else {
 					StringBuilder sb = new StringBuilder();
 					sb.append(((PersistentObject) dh).storeToString()).append(","); //$NON-NLS-1$
-					event.data = sb.toString().replace(",$", ""); //$NON-NLS-1$ //$NON-NLS-2$
+					log.debug("dragSetData; unsupported dataType {} returning {}",event.dataType, sb.toString().replace(",$", "")); //$NON-NLS-1$
+					event.data = sb.toString().replace(",$", "");  //$NON-NLS-1$ //$NON-NLS-2$
 				}
 			}
 		});
 		
-		GlobalEventDispatcher.addActivationListener(this, this);
 		eeli_user.catchElexisEvent(ElexisEvent.createUserEvent());
 		viewer.setInput(getViewSite());
-		
+		ElexisEventDispatcher.getInstance().addListeners(eeli_pat, eeli_user, eeli_dochandle);
+		getSite().getPage().addPartListener(udpateOnVisible);
 	}
 	
 	private SelectionListener getSelectionAdapter(final TreeColumn column, final int index){
@@ -491,7 +514,8 @@ public class OmnivoreView extends ViewPart implements IActivationListener {
 	
 	@Override
 	public void dispose(){
-		GlobalEventDispatcher.removeActivationListener(this, this);
+		getSite().getPage().removePartListener(udpateOnVisible);
+		ElexisEventDispatcher.getInstance().removeListeners(eeli_pat, eeli_user, eeli_dochandle);
 		saveSortSettings();
 		super.dispose();
 	}
@@ -584,30 +608,45 @@ public class OmnivoreView extends ViewPart implements IActivationListener {
 			}
 
 			@Override
-			public void doRun(DocHandle dh) {
-				if (dh.isCategory()) {
-					if (CoreHub.acl.request(AccessControlDefaults.DOCUMENT_CATDELETE)) {
-						InputDialog id = new InputDialog(getViewSite().getShell(),
-								MessageFormat.format("Kategorie {0} löschen", dh.getLabel()),
-								"Geben Sie bitte an, in welche andere Kategorie die Dokumente dieser Kategorie verschoben werden sollen",
-								"", null);
-						if (id.open() == Dialog.OK) {
-							DocHandle.removeCategory(dh.getLabel(), id.getValue());
-							viewer.refresh();
+				public void doRun(DocHandle dh){
+					if (dh.isCategory()) {
+						if (CoreHub.acl.request(AccessControlDefaults.DOCUMENT_CATDELETE)) {
+							ListDialog ld = new ListDialog(getViewSite().getShell());
+							
+							Query<DocHandle> qbe = new Query<DocHandle>(DocHandle.class);
+							qbe.add(DocHandle.FLD_MIMETYPE, Query.EQUALS, CATEGORY_MIMETYPE);
+							qbe.add(PersistentObject.FLD_ID, Query.NOT_EQUAL, dh.getId());
+							List<DocHandle> mainCategories = qbe.execute();
+
+							ld.setInput(mainCategories);
+							ld.setContentProvider(ArrayContentProvider.getInstance());
+							ld.setLabelProvider(new DefaultLabelProvider());
+							ld.setTitle(
+								MessageFormat.format("Kategorie {0} löschen", dh.getLabel()));
+							ld.setMessage(
+								"Geben Sie bitte an, in welche andere Kategorie die Dokumente dieser Kategorie verschoben werden sollen");
+							int open = ld.open();
+							if (open == Dialog.OK) {
+								Object[] selection = ld.getResult();
+								if (selection != null && selection.length > 0) {
+									String label = ((DocHandle) selection[0]).getLabel();
+									DocHandle.removeCategory(dh.getLabel(), label);
+								}
+								viewer.refresh();
+							}
+						} else {
+							SWTHelper.showError("Insufficient Rights",
+								"You have insufficient rights to delete document categories");
 						}
 					} else {
-						SWTHelper.showError("Insufficient Rights",
-								"You have insufficient rights to delete document categories");
+						if (SWTHelper.askYesNo(Messages.OmnivoreView_reallyDeleteCaption,
+							MessageFormat.format(Messages.OmnivoreView_reallyDeleteContents,
+								dh.getTitle()))) {
+							dh.delete();
+							viewer.refresh();
+						}
 					}
-
-				} else {
-					if (SWTHelper.askYesNo(Messages.OmnivoreView_reallyDeleteCaption,
-							MessageFormat.format(Messages.OmnivoreView_reallyDeleteContents, dh.get("Titel")))) { // $NON-NLS-2$
-						dh.delete();
-						viewer.refresh();
-					}
-				}
-			};
+				};
 		};
 		
 		editAction = new LockRequestingRestrictedAction<DocHandle>(AccessControlDefaults.DOCUMENT_DELETE,
@@ -629,7 +668,7 @@ public class OmnivoreView extends ViewPart implements IActivationListener {
 					if (CoreHub.acl.request(AccessControlDefaults.DOCUMENT_CATDELETE)) {
 
 						InputDialog id = new InputDialog(getViewSite().getShell(),
-								MessageFormat.format("Kategorie '{0}' umbenennen.", dh.getLabel()),
+								MessageFormat.format("Kategorie {0} umbenennen.", dh.getLabel()),
 								"Geben Sie bitte einen neuen Namen für die Kategorie ein", dh.getLabel(), null);
 						if (id.open() == Dialog.OK) {
 							String nn = id.getValue();
@@ -701,7 +740,7 @@ public class OmnivoreView extends ViewPart implements IActivationListener {
 			
 			public void run(){
 				bFlat = isChecked();
-				refresh();
+				viewer.refresh();
 			}
 		};
 	};
@@ -719,20 +758,17 @@ public class OmnivoreView extends ViewPart implements IActivationListener {
 	 */
 	public void setFocus(){
 		viewer.getControl().setFocus();
+		refresh();
 	}
 	
-	public void activation(boolean mode){
-		if (mode == false) {
-			TreeColumn[] treeColumns = viewer.getTree().getColumns();
-			StringBuilder sb = new StringBuilder();
-			for (TreeColumn tc : treeColumns) {
-				sb.append(tc.getWidth());
-				sb.append(",");
-			}
-			CoreHub.userCfg.set(PreferencePage.USR_COLUMN_WIDTH_SETTINGS, sb.toString());
-			
-			saveSortSettings();
+	private void saveColumnWidthSettings() {
+		TreeColumn[] treeColumns = viewer.getTree().getColumns();
+		StringBuilder sb = new StringBuilder();
+		for (TreeColumn tc : treeColumns) {
+			sb.append(tc.getWidth());
+			sb.append(",");
 		}
+		CoreHub.userCfg.set(PreferencePage.USR_COLUMN_WIDTH_SETTINGS, sb.toString());
 	}
 	
 	private void saveSortSettings(){
@@ -744,18 +780,7 @@ public class OmnivoreView extends ViewPart implements IActivationListener {
 	}
 	
 	public void refresh(){
-		viewer.refresh();
-	}
-	
-	public void visible(boolean mode){
-		if (mode) {
-			ElexisEventDispatcher.getInstance().addListeners(eeli_pat, eeli_user, eeli_dochandle);
-			refresh();
-		} else {
-			ElexisEventDispatcher.getInstance()
-				.removeListeners(eeli_pat, eeli_user, eeli_dochandle);
-		}
-		
+		eeli_pat.catchElexisEvent(ElexisEvent.createPatientEvent());
 	}
 	
 	/**
